@@ -37,6 +37,7 @@ import com.beginnerpiano.practice.PracticeViewModel
 import com.beginnerpiano.ui.components.PianoKeyboard
 import com.beginnerpiano.ui.components.PracticeHud
 import com.beginnerpiano.ui.components.StaffCanvas
+import androidx.compose.ui.platform.LocalConfiguration
 import com.beginnerpiano.ui.theme.Emerald500
 import com.beginnerpiano.ui.theme.Indigo500
 import com.beginnerpiano.ui.theme.Slate400
@@ -49,80 +50,172 @@ fun PracticeScreen(
 ) {
     val practiceState by viewModel.practiceState.collectAsState()
     val detectedPitch by viewModel.detectedPitch.collectAsState()
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
 
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
-            .padding(16.dp),
+            .padding(if (isLandscape) 10.dp else 16.dp),
         verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // 1. Top Action Bar
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(
-                    onClick = onNavigateBack,
-                    shape = RoundedCornerShape(8.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+        if (isLandscape) {
+            // Landscape Top Action Bar: compact unified Row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(44.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Back button + Title & composer
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("← Songs", fontSize = 12.sp)
-                }
-                Column(modifier = Modifier.padding(start = 12.dp)) {
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("← Songs", fontSize = 11.sp)
+                    }
                     Text(
-                        text = practiceState.song.title,
+                        text = "${practiceState.song.title} • ${practiceState.song.composer}",
                         fontWeight = FontWeight.Bold,
-                        fontSize = 17.sp
-                    )
-                    Text(
-                        text = practiceState.song.composer,
-                        fontSize = 11.sp,
-                        color = Slate400
-                    )
-                }
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                // Mode Toggle Button
-                Button(
-                    onClick = { viewModel.toggleMode() },
-                    shape = RoundedCornerShape(8.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) Indigo500 else Emerald500
-                    )
-                ) {
-                    Text(
-                        text = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) "Wait-For-Note" else "Tempo",
-                        fontSize = 11.sp
+                        fontSize = 13.sp
                     )
                 }
 
-                // Restart Button
-                OutlinedButton(
-                    onClick = { viewModel.restart() },
-                    shape = RoundedCornerShape(8.dp)
+                // Inline HUD badges & controls
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Restart", fontSize = 11.sp)
+                    // Target note badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Indigo500.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "Target: ${practiceState.currentTargetNote?.midiNote ?: "-"}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Indigo500
+                        )
+                    }
+
+                    // Streak badge
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Emerald500.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "🔥 ${practiceState.streak}",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Emerald500
+                        )
+                    }
+
+                    // Mode button
+                    Button(
+                        onClick = { viewModel.toggleMode() },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) Indigo500 else Emerald500
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) "Wait-For-Note" else "Tempo",
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    // Restart button
+                    OutlinedButton(
+                        onClick = { viewModel.restart() },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("Restart", fontSize = 11.sp)
+                    }
                 }
             }
+        } else {
+            // 1. Portrait Top Action Bar
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    OutlinedButton(
+                        onClick = onNavigateBack,
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text("← Songs", fontSize = 12.sp)
+                    }
+                    Column(modifier = Modifier.padding(start = 12.dp)) {
+                        Text(
+                            text = practiceState.song.title,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 17.sp
+                        )
+                        Text(
+                            text = practiceState.song.composer,
+                            fontSize = 11.sp,
+                            color = Slate400
+                        )
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Mode Toggle Button
+                    Button(
+                        onClick = { viewModel.toggleMode() },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) Indigo500 else Emerald500
+                        )
+                    ) {
+                        Text(
+                            text = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) "Wait-For-Note" else "Tempo",
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    // Restart Button
+                    OutlinedButton(
+                        onClick = { viewModel.restart() },
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text("Restart", fontSize = 11.sp)
+                    }
+                }
+            }
+
+            // 2. Portrait Real-Time HUD
+            PracticeHud(
+                practiceState = practiceState,
+                detectedPitch = detectedPitch,
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
         }
-
-        // 2. Real-Time HUD
-        PracticeHud(
-            practiceState = practiceState,
-            detectedPitch = detectedPitch,
-            modifier = Modifier.padding(vertical = 8.dp)
-        )
 
         // 3. Musical Staff Canvas
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
-                .padding(vertical = 4.dp),
+                .padding(vertical = if (isLandscape) 4.dp else 4.dp),
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
@@ -133,7 +226,7 @@ fun PracticeScreen(
                 feedbackStatus = practiceState.feedbackStatus,
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(vertical = 12.dp)
+                    .padding(vertical = if (isLandscape) 8.dp else 12.dp)
             )
         }
 
@@ -143,7 +236,9 @@ fun PracticeScreen(
             detectedMidi = practiceState.lastDetectedMidi,
             feedbackStatus = practiceState.feedbackStatus,
             onKeyTapped = { midi -> viewModel.onKeyTapped(midi) },
-            modifier = Modifier.padding(top = 8.dp)
+            modifier = Modifier
+                .padding(top = if (isLandscape) 4.dp else 8.dp)
+                .height(if (isLandscape) 100.dp else 130.dp)
         )
     }
 

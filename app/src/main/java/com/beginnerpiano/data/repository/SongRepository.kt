@@ -21,6 +21,16 @@ object SongRepository {
         createLightlyRow(),
         createAlouette(),
         createBeyerOp101No12(),
+        createHavana(),
+        createShapeOfYou(),
+        createSevenNationArmy(),
+        createBeliever(),
+        createStay(),
+        createCanonInD(),
+        createStarWars(),
+        createWeWillRockYou(),
+        createBabyShark(),
+        createStandByMe(),
 
         // Level 2: Elementary (1-Octave Melodies & Scale Drills)
         createTwinkleTwinkle(),
@@ -280,6 +290,190 @@ object SongRepository {
             id = "beyer_op101_12",
             title = "Beyer Op. 101: Exercise No. 12",
             composer = "Ferdinand Beyer",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 60,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createHavana(): Song {
+        // Havana - Camila Cabello
+        val noteMidis = listOf(
+            64, 67, 64, 62, 60, 62, 64, 62, 60, 62,
+            64, 67, 64, 62, 60, 62, 64, 62, 60
+        )
+        return Song(
+            id = "havana",
+            title = "Havana",
+            composer = "Camila Cabello",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createShapeOfYou(): Song {
+        // Shape of You - Ed Sheeran
+        val noteMidis = listOf(
+            64, 67, 67, 64, 67, 67, 64, 67, 67, 65, 64, 62,
+            60, 60, 64, 64, 60, 64, 64, 60, 64, 64, 62, 60
+        )
+        return Song(
+            id = "shape_of_you",
+            title = "Shape of You",
+            composer = "Ed Sheeran",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createSevenNationArmy(): Song {
+        // Seven Nation Army - The White Stripes
+        val noteMidis = listOf(
+            64, 64, 67, 64, 62, 60, 62,
+            64, 64, 67, 64, 62, 65, 64, 62, 60
+        )
+        return Song(
+            id = "seven_nation_army",
+            title = "Seven Nation Army",
+            composer = "The White Stripes",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 60,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createBeliever(): Song {
+        // Believer - Imagine Dragons
+        val noteMidis = listOf(
+            64, 64, 64, 64, 62, 60,
+            64, 64, 64, 64, 62, 60,
+            67, 67, 65, 64, 62, 60
+        )
+        return Song(
+            id = "believer",
+            title = "Believer",
+            composer = "Imagine Dragons",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createStay(): Song {
+        // Stay - The Kid LAROI & Justin Bieber
+        val noteMidis = listOf(
+            64, 67, 67, 64, 62, 60, 62,
+            64, 67, 64, 62, 60, 62, 60
+        )
+        return Song(
+            id = "stay",
+            title = "Stay",
+            composer = "The Kid LAROI & Justin Bieber",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createCanonInD(): Song {
+        // Canon in D - Johann Pachelbel
+        val noteMidis = listOf(
+            67, 65, 64, 62, 60, 62, 64, 65,
+            67, 64, 65, 67, 64, 65, 67, 65, 64, 62, 60
+        )
+        return Song(
+            id = "canon_in_d",
+            title = "Canon in D",
+            composer = "Johann Pachelbel",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 55,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createStarWars(): Song {
+        // Star Wars Theme - John Williams
+        val noteMidis = listOf(
+            60, 60, 60, 67, 65, 64, 62,
+            67, 65, 64, 62, 67, 65, 64, 65, 62, 60
+        )
+        return Song(
+            id = "star_wars",
+            title = "Star Wars Theme",
+            composer = "John Williams",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 60,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createWeWillRockYou(): Song {
+        // We Will Rock You - Queen
+        val noteMidis = listOf(
+            64, 64, 62, 60,
+            64, 64, 62, 60,
+            67, 65, 64, 62, 60
+        )
+        return Song(
+            id = "we_will_rock_you",
+            title = "We Will Rock You",
+            composer = "Queen",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 60,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createBabyShark(): Song {
+        // Baby Shark - Pinkfong
+        val noteMidis = listOf(
+            62, 64, 67, 67, 67, 67, 67, 67,
+            62, 64, 67, 67, 67, 67, 67, 67,
+            62, 64, 67, 67, 67, 67, 67, 67,
+            67, 67, 65, 64
+        )
+        return Song(
+            id = "baby_shark",
+            title = "Baby Shark",
+            composer = "Pinkfong",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createStandByMe(): Song {
+        // Stand By Me - Ben E. King
+        val noteMidis = listOf(
+            60, 60, 64, 67, 65, 64, 62, 60,
+            62, 64, 62, 60
+        )
+        return Song(
+            id = "stand_by_me",
+            title = "Stand By Me",
+            composer = "Ben E. King",
             difficulty = DifficultyLevel.BEGINNER,
             defaultBpm = 60,
             notes = noteMidis.map { midi ->

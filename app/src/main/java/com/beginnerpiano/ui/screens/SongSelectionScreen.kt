@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -48,6 +52,8 @@ fun SongSelectionScreen(
     onSongSelected: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     var selectedFilter by remember { mutableStateOf<DifficultyLevel?>(null) }
 
     val displayedSongs = remember(selectedFilter) {
@@ -65,15 +71,15 @@ fun SongSelectionScreen(
             .padding(16.dp)
     ) {
         // App Header
-        Column(modifier = Modifier.padding(vertical = 10.dp)) {
+        Column(modifier = Modifier.padding(vertical = if (isLandscape) 4.dp else 10.dp)) {
             Text(
                 text = "🎹 Beginner Piano",
-                fontSize = 26.sp,
+                fontSize = if (isLandscape) 22.sp else 26.sp,
                 fontWeight = FontWeight.Black
             )
             Text(
                 text = "Progressive repertoire designed for new players",
-                fontSize = 13.sp,
+                fontSize = if (isLandscape) 12.sp else 13.sp,
                 color = Slate400
             )
         }
@@ -81,7 +87,7 @@ fun SongSelectionScreen(
         // Level Filter Chips Row
         LazyRow(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
-            contentPadding = PaddingValues(vertical = 8.dp)
+            contentPadding = PaddingValues(vertical = if (isLandscape) 4.dp else 8.dp)
         ) {
             item {
                 FilterChip(
@@ -125,17 +131,33 @@ fun SongSelectionScreen(
             fontSize = 11.sp,
             fontWeight = FontWeight.Bold,
             color = Slate400,
-            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+            modifier = Modifier.padding(top = if (isLandscape) 4.dp else 8.dp, bottom = if (isLandscape) 4.dp else 8.dp)
         )
 
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(10.dp)
-        ) {
-            items(displayedSongs) { song ->
-                SongCard(
-                    song = song,
-                    onClick = { onSongSelected(song) }
-                )
+        if (isLandscape) {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(displayedSongs) { song ->
+                    SongCard(
+                        song = song,
+                        onClick = { onSongSelected(song) }
+                    )
+                }
+            }
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items(displayedSongs) { song ->
+                    SongCard(
+                        song = song,
+                        onClick = { onSongSelected(song) }
+                    )
+                }
             }
         }
     }

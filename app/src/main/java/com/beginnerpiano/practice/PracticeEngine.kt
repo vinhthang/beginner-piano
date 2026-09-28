@@ -39,6 +39,9 @@ data class PracticeState(
             val total = totalHits + totalMisses
             return if (total > 0) ((totalHits.toDouble() / total) * 100).toInt() else 100
         }
+
+    val streak: Int
+        get() = currentStreak
 }
 
 class PracticeEngine(initialSong: Song) {
