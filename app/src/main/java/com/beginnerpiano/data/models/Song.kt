@@ -13,6 +13,11 @@ enum class DifficultyLevel {
     INTERMEDIATE
 }
 
+enum class NotationSystem(val label: String) {
+    SOLFEGE("Solfège (Do-Re-Mi)"),
+    LETTERS("Letters (C-D-E)")
+}
+
 data class NoteEvent(
     val id: String = UUID.randomUUID().toString(),
     val midiNote: Int,
@@ -22,16 +27,24 @@ data class NoteEvent(
     val description: String = ""
 ) {
     val noteName: String
-        get() = midiToNoteName(midiNote)
+        get() = midiToNoteName(midiNote, NotationSystem.SOLFEGE)
+
+    fun getNoteName(notation: NotationSystem = NotationSystem.SOLFEGE): String =
+        midiToNoteName(midiNote, notation)
 
     companion object {
-        private val NOTE_NAMES = listOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+        private val LETTER_NAMES = listOf("C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B")
+        private val SOLFEGE_NAMES = listOf("Do", "Do#", "Re", "Re#", "Mi", "Fa", "Fa#", "Sol", "Sol#", "La", "La#", "Si")
 
-        fun midiToNoteName(midi: Int): String {
+        fun midiToNoteName(midi: Int, notation: NotationSystem = NotationSystem.SOLFEGE): String {
             if (midi < 21 || midi > 108) return "Unknown"
             val noteIndex = (midi - 12) % 12
             val octave = (midi - 12) / 12
-            return "${NOTE_NAMES[noteIndex]}$octave"
+            val names = when (notation) {
+                NotationSystem.SOLFEGE -> SOLFEGE_NAMES
+                NotationSystem.LETTERS -> LETTER_NAMES
+            }
+            return "${names[noteIndex]}$octave"
         }
 
         fun midiToFrequency(midi: Int): Double {

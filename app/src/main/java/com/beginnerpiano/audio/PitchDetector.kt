@@ -23,6 +23,13 @@ data class DetectedPitch(
     }
 }
 
+enum class PitchDetectorType {
+    YIN,
+    SPICE
+}
+
 interface PitchDetector {
+    val name: String
+    val type: PitchDetectorType
     fun detectPitch(buffer: FloatArray, sampleRate: Int): DetectedPitch
 }

@@ -14,6 +14,7 @@ import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
+import com.beginnerpiano.data.models.NotationSystem
 import com.beginnerpiano.data.models.NoteEvent
 import com.beginnerpiano.practice.NoteFeedbackStatus
 import com.beginnerpiano.ui.theme.Emerald500
@@ -29,7 +30,8 @@ fun StaffCanvas(
     feedbackStatus: NoteFeedbackStatus,
     modifier: Modifier = Modifier
         .fillMaxWidth()
-        .height(160.dp)
+        .height(160.dp),
+    notation: NotationSystem = NotationSystem.SOLFEGE
 ) {
     val staffLineColor = Slate400
     val activeColor = when (feedbackStatus) {
@@ -119,7 +121,7 @@ fun StaffCanvas(
                             textAlign = android.graphics.Paint.Align.CENTER
                             isFakeBoldText = true
                         }
-                        drawText(note.noteName, noteX, noteY - 44.dp.toPx(), paint)
+                        drawText(NoteEvent.midiToNoteName(note.midiNote, notation), noteX, noteY - 44.dp.toPx(), paint)
                     }
                 }
             }

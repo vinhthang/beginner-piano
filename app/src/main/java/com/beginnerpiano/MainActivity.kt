@@ -13,6 +13,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.beginnerpiano.data.models.Song
 import com.beginnerpiano.practice.PracticeViewModel
+import com.beginnerpiano.ui.components.SettingsDialog
 import com.beginnerpiano.ui.screens.PracticeScreen
 import com.beginnerpiano.ui.screens.SongSelectionScreen
 import com.beginnerpiano.ui.theme.BeginnerPianoTheme
@@ -36,11 +38,14 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        practiceViewModel.initContext(this)
 
         setContent {
             BeginnerPianoTheme {
                 Surface(modifier = Modifier.fillMaxSize()) {
                     var currentScreen by remember { mutableStateOf(Screen.SONG_SELECTION) }
+                    var showSettings by remember { mutableStateOf(false) }
+                    val practiceState by practiceViewModel.practiceState.collectAsState()
                     var hasAudioPermission by remember {
                         mutableStateOf(
                             ContextCompat.checkSelfPermission(
@@ -80,7 +85,9 @@ class MainActivity : ComponentActivity() {
                                     practiceViewModel.selectSong(song)
                                     practiceViewModel.restart()
                                     currentScreen = Screen.PRACTICE
-                                }
+                                },
+                                notationSystem = practiceState.notationSystem,
+                                onOpenSettings = { showSettings = true }
                             )
                         }
                         Screen.PRACTICE -> {
@@ -91,6 +98,18 @@ class MainActivity : ComponentActivity() {
                                 }
                             )
                         }
+                    }
+
+                    if (showSettings) {
+                        SettingsDialog(
+                            currentNotation = practiceState.notationSystem,
+                            onNotationChanged = { practiceViewModel.setNotationSystem(it) },
+                            currentPitchDetector = practiceState.pitchDetectorType,
+                            onPitchDetectorChanged = { practiceViewModel.setPitchDetectorType(it) },
+                            currentMode = practiceState.mode,
+                            onModeChanged = { practiceViewModel.setMode(it) },
+                            onDismissRequest = { showSettings = false }
+                        )
                     }
                 }
             }

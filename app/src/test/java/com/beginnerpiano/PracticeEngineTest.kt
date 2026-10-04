@@ -34,6 +34,7 @@ class PracticeEngineTest {
         assertEquals(0, engine.state.currentNoteIndex)
         assertEquals(60, engine.state.currentTargetNote?.midiNote)
         assertFalse(engine.state.isCompleted)
+        assertFalse(engine.state.isPlayingDemo)
         assertEquals(0, engine.state.totalHits)
         assertEquals(0, engine.state.totalMisses)
     }
@@ -75,5 +76,35 @@ class PracticeEngineTest {
         assertTrue(engine.state.isCompleted)
         assertEquals(3, engine.state.totalHits)
         assertEquals(100, engine.state.accuracyPercent)
+    }
+
+    @Test
+    fun testDemoPlaybackState() {
+        val engine = PracticeEngine(createTestSong())
+        assertFalse(engine.state.isPlayingDemo)
+
+        engine.setPlayingDemo(true)
+        assertTrue(engine.state.isPlayingDemo)
+
+        engine.setPlayingDemo(false)
+        assertFalse(engine.state.isPlayingDemo)
+    }
+
+    @Test
+    fun testNotationSystemStateAndDetection() {
+        val engine = PracticeEngine(createTestSong())
+        assertEquals(com.beginnerpiano.data.models.NotationSystem.SOLFEGE, engine.state.notationSystem)
+
+        // Play C4 (60) with default Solfège
+        engine.onKeyTapped(60)
+        assertEquals("Do4", engine.state.lastDetectedName)
+
+        // Switch to Letters notation
+        engine.setNotationSystem(com.beginnerpiano.data.models.NotationSystem.LETTERS)
+        assertEquals(com.beginnerpiano.data.models.NotationSystem.LETTERS, engine.state.notationSystem)
+
+        // Play D4 (62) with Letters
+        engine.onKeyTapped(62)
+        assertEquals("D4", engine.state.lastDetectedName)
     }
 }

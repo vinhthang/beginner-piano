@@ -2,6 +2,7 @@ package com.beginnerpiano.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beginnerpiano.audio.DetectedPitch
+import com.beginnerpiano.audio.PitchDetectorType
 import com.beginnerpiano.data.models.NoteEvent
 import com.beginnerpiano.practice.NoteFeedbackStatus
 import com.beginnerpiano.practice.PracticeState
@@ -37,10 +39,13 @@ import com.beginnerpiano.ui.theme.Slate700
 fun PracticeHud(
     practiceState: PracticeState,
     detectedPitch: DetectedPitch,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onOpenSettings: () -> Unit = {},
+    onTogglePitchDetector: () -> Unit = onOpenSettings
 ) {
+    val notation = practiceState.notationSystem
     val targetNote = practiceState.currentTargetNote
-    val targetName = targetNote?.noteName ?: "--"
+    val targetName = targetNote?.let { NoteEvent.midiToNoteName(it.midiNote, notation) } ?: "--"
 
     Row(
         modifier = modifier.fillMaxWidth(),
@@ -95,25 +100,50 @@ fun PracticeHud(
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
                 .padding(10.dp)
         ) {
-            val statusColor = when (practiceState.feedbackStatus) {
-                NoteFeedbackStatus.HIT -> Emerald500
-                NoteFeedbackStatus.MISMATCH -> Rose500
-                NoteFeedbackStatus.IDLE -> if (!detectedPitch.isSilent) Indigo500 else Slate400
+            val statusColor = when {
+                practiceState.isPlayingDemo -> Emerald500
+                practiceState.feedbackStatus == NoteFeedbackStatus.HIT -> Emerald500
+                practiceState.feedbackStatus == NoteFeedbackStatus.MISMATCH -> Rose500
+                else -> if (!detectedPitch.isSilent) Indigo500 else Slate400
             }
 
-            val statusText = when (practiceState.feedbackStatus) {
-                NoteFeedbackStatus.HIT -> "Match: ${practiceState.lastDetectedName}"
-                NoteFeedbackStatus.MISMATCH -> "Heard: ${practiceState.lastDetectedName} (Expected: $targetName)"
-                NoteFeedbackStatus.IDLE -> if (!detectedPitch.isSilent) "Heard: ${detectedPitch.noteName}" else "Listening..."
+            val headerText = if (practiceState.isPlayingDemo) "DEMO PLAYBACK" else "MICROPHONE"
+            val detectedNoteName = if (!detectedPitch.isSilent) NoteEvent.midiToNoteName(detectedPitch.midiNote, notation) else "--"
+
+            val statusText = when {
+                practiceState.isPlayingDemo -> "Playing: $targetName"
+                practiceState.feedbackStatus == NoteFeedbackStatus.HIT -> "Match: ${practiceState.lastDetectedName}"
+                practiceState.feedbackStatus == NoteFeedbackStatus.MISMATCH -> "Heard: ${practiceState.lastDetectedName} (Expected: $targetName)"
+                else -> if (!detectedPitch.isSilent) "Heard: $detectedNoteName" else "Listening..."
             }
 
             Column {
-                Text(
-                    text = "MICROPHONE",
-                    fontSize = 9.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Slate400
-                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = headerText,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (practiceState.isPlayingDemo) Emerald500 else Slate400
+                    )
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable(enabled = !practiceState.isPlayingDemo, onClick = onOpenSettings)
+                            .background(Indigo500.copy(alpha = 0.12f))
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    ) {
+                        Text(
+                            text = if (practiceState.pitchDetectorType == PitchDetectorType.YIN) "⚡ YIN (DSP)" else "🧠 SPICE (AI)",
+                            fontSize = 8.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Indigo500
+                        )
+                    }
+                }
                 Text(
                     text = statusText,
                     fontSize = 12.sp,

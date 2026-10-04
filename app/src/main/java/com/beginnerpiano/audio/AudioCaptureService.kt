@@ -15,9 +15,16 @@ import kotlinx.coroutines.launch
 
 class AudioCaptureService(
     private val pitchDetector: PitchDetector = YinPitchDetector(),
-    private val sampleRate: Int = 44100,
-    private val bufferSizeSamples: Int = 2048
+    private val sampleRate: Int = 16000,
+    private val bufferSizeSamples: Int = 1024
 ) {
+    @Volatile
+    private var activeDetector: PitchDetector = pitchDetector
+
+    fun setPitchDetector(detector: PitchDetector) {
+        activeDetector = detector
+    }
+
     private var audioRecord: AudioRecord? = null
     private var captureJob: Job? = null
     private val _pitchFlow = MutableStateFlow(DetectedPitch.SILENCE)
@@ -65,7 +72,7 @@ class AudioCaptureService(
                         for (i in 0 until readSamples) {
                             floatBuffer[i] = shortBuffer[i] / 32768.0f
                         }
-                        val pitch = pitchDetector.detectPitch(floatBuffer, sampleRate)
+                        val pitch = activeDetector.detectPitch(floatBuffer, sampleRate)
                         _pitchFlow.value = pitch
                     }
                 }

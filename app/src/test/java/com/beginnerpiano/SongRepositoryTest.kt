@@ -12,7 +12,7 @@ class SongRepositoryTest {
     fun testCuratedSongsExist() {
         val songs = SongRepository.songs
         assertTrue("Expected curated songs", songs.isNotEmpty())
-        assertEquals("Expected exactly 30 beginner curriculum pieces", 30, songs.size)
+        assertEquals("Expected exactly 40 beginner curriculum pieces", 40, songs.size)
     }
 
     @Test
@@ -21,15 +21,15 @@ class SongRepositoryTest {
         val elementary = SongRepository.getSongsByDifficulty(com.beginnerpiano.data.models.DifficultyLevel.ELEMENTARY)
         val intermediate = SongRepository.getSongsByDifficulty(com.beginnerpiano.data.models.DifficultyLevel.INTERMEDIATE)
 
-        assertEquals("Expected exactly 22 Level 1 five-finger beginner songs", 22, beginner.size)
-        assertEquals("Expected exactly 4 Level 2 elementary songs", 4, elementary.size)
+        assertEquals("Expected exactly 25 Level 1 five-finger beginner songs", 25, beginner.size)
+        assertEquals("Expected exactly 11 Level 2 elementary songs", 11, elementary.size)
         assertEquals("Expected exactly 4 Level 3 classical songs", 4, intermediate.size)
     }
 
     @Test
     fun testLevel1SongsAreConstrainedToFiveFingerPosition() {
         val beginnerSongs = SongRepository.getSongsByDifficulty(com.beginnerpiano.data.models.DifficultyLevel.BEGINNER)
-        assertEquals("Expected 22 Level 1 songs", 22, beginnerSongs.size)
+        assertEquals("Expected 25 Level 1 songs", 25, beginnerSongs.size)
         for (song in beginnerSongs) {
             for (note in song.notes) {
                 assertTrue(
@@ -43,13 +43,15 @@ class SongRepositoryTest {
     @Test
     fun testClassicPiecesExist() {
         val expectedIds = listOf(
-            // Level 1: 22 Five-Finger Pieces (12 Classical/Traditional + 10 Famous Pop/Themes)
+            // Level 1: 25 Five-Finger Pieces (15 Classical/Traditional + 10 Famous Pop/Themes)
             "hot_cross_buns", "au_clair_de_la_lune", "mary_had_a_little_lamb", "ode_to_joy", "jingle_bells",
             "when_the_saints", "morning_mood", "dvorak_largo", "can_can", "lightly_row", "alouette", "beyer_op101_12",
             "havana", "shape_of_you", "seven_nation_army", "believer", "stay",
             "canon_in_d", "star_wars", "we_will_rock_you", "baby_shark", "stand_by_me",
+            "row_row_row_your_boat", "vivaldi_spring", "aunt_rhody",
             // Level 2: Elementary
             "twinkle_twinkle", "frere_jacques", "brahms_lullaby", "c_major_scale",
+            "happy_birthday", "london_bridge", "old_macdonald", "baa_baa_black_sheep", "wheels_on_the_bus", "swan_lake_theme", "brahms_waltz",
             // Level 3: Classical
             "beyer_op101_8", "czerny_op599_1", "bach_minuet_g", "fur_elise"
         )

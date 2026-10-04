@@ -1,6 +1,8 @@
 package com.beginnerpiano.practice
 
 import com.beginnerpiano.audio.DetectedPitch
+import com.beginnerpiano.audio.PitchDetectorType
+import com.beginnerpiano.data.models.NotationSystem
 import com.beginnerpiano.data.models.NoteEvent
 import com.beginnerpiano.data.models.Song
 
@@ -19,6 +21,8 @@ data class PracticeState(
     val song: Song,
     val currentNoteIndex: Int = 0,
     val mode: PracticeMode = PracticeMode.WAIT_FOR_NOTE,
+    val pitchDetectorType: PitchDetectorType = PitchDetectorType.YIN,
+    val notationSystem: NotationSystem = NotationSystem.SOLFEGE,
     val feedbackStatus: NoteFeedbackStatus = NoteFeedbackStatus.IDLE,
     val lastDetectedMidi: Int? = null,
     val lastDetectedName: String? = null,
@@ -26,7 +30,8 @@ data class PracticeState(
     val totalMisses: Int = 0,
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
-    val isCompleted: Boolean = false
+    val isCompleted: Boolean = false,
+    val isPlayingDemo: Boolean = false
 ) {
     val currentTargetNote: NoteEvent?
         get() = if (currentNoteIndex in song.notes.indices) song.notes[currentNoteIndex] else null
@@ -50,15 +55,37 @@ class PracticeEngine(initialSong: Song) {
         private set
 
     fun reset() {
-        state = PracticeState(song = state.song, mode = state.mode)
+        state = PracticeState(
+            song = state.song,
+            mode = state.mode,
+            pitchDetectorType = state.pitchDetectorType,
+            notationSystem = state.notationSystem
+        )
     }
 
     fun setSong(song: Song) {
-        state = PracticeState(song = song, mode = state.mode)
+        state = PracticeState(
+            song = song,
+            mode = state.mode,
+            pitchDetectorType = state.pitchDetectorType,
+            notationSystem = state.notationSystem
+        )
     }
 
     fun setMode(mode: PracticeMode) {
         state = state.copy(mode = mode)
+    }
+
+    fun setPitchDetectorType(type: PitchDetectorType) {
+        state = state.copy(pitchDetectorType = type)
+    }
+
+    fun setNotationSystem(notation: NotationSystem) {
+        state = state.copy(notationSystem = notation)
+    }
+
+    fun setPlayingDemo(isPlaying: Boolean) {
+        state = state.copy(isPlayingDemo = isPlaying)
     }
 
     fun clearFeedbackStatus() {
@@ -79,7 +106,7 @@ class PracticeEngine(initialSong: Song) {
 
     private fun evaluateMidi(playedMidi: Int): NoteFeedbackStatus {
         val target = state.currentTargetNote ?: return NoteFeedbackStatus.IDLE
-        val playedName = NoteEvent.midiToNoteName(playedMidi)
+        val playedName = NoteEvent.midiToNoteName(playedMidi, state.notationSystem)
 
         return if (playedMidi == target.midiNote) {
             // Correct note hit!

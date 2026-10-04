@@ -24,6 +24,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.beginnerpiano.data.models.DifficultyLevel
+import com.beginnerpiano.data.models.NotationSystem
 import com.beginnerpiano.data.models.NoteEvent
 import com.beginnerpiano.data.models.Song
 import com.beginnerpiano.data.repository.SongRepository
@@ -50,7 +52,9 @@ import com.beginnerpiano.ui.theme.Slate400
 @Composable
 fun SongSelectionScreen(
     onSongSelected: (Song) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    notationSystem: NotationSystem = NotationSystem.SOLFEGE,
+    onOpenSettings: () -> Unit = {}
 ) {
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
@@ -71,17 +75,32 @@ fun SongSelectionScreen(
             .padding(16.dp)
     ) {
         // App Header
-        Column(modifier = Modifier.padding(vertical = if (isLandscape) 4.dp else 10.dp)) {
-            Text(
-                text = "🎹 Beginner Piano",
-                fontSize = if (isLandscape) 22.sp else 26.sp,
-                fontWeight = FontWeight.Black
-            )
-            Text(
-                text = "Progressive repertoire designed for new players",
-                fontSize = if (isLandscape) 12.sp else 13.sp,
-                color = Slate400
-            )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = if (isLandscape) 4.dp else 10.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column {
+                Text(
+                    text = "🎹 Beginner Piano",
+                    fontSize = if (isLandscape) 22.sp else 26.sp,
+                    fontWeight = FontWeight.Black
+                )
+                Text(
+                    text = "Progressive repertoire designed for new players",
+                    fontSize = if (isLandscape) 12.sp else 13.sp,
+                    color = Slate400
+                )
+            }
+            OutlinedButton(
+                onClick = onOpenSettings,
+                shape = RoundedCornerShape(8.dp),
+                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+            ) {
+                Text("⚙ Settings", fontSize = 12.sp)
+            }
         }
 
         // Level Filter Chips Row
@@ -144,6 +163,7 @@ fun SongSelectionScreen(
                 items(displayedSongs) { song ->
                     SongCard(
                         song = song,
+                        notationSystem = notationSystem,
                         onClick = { onSongSelected(song) }
                     )
                 }
@@ -155,6 +175,7 @@ fun SongSelectionScreen(
                 items(displayedSongs) { song ->
                     SongCard(
                         song = song,
+                        notationSystem = notationSystem,
                         onClick = { onSongSelected(song) }
                     )
                 }
@@ -166,6 +187,7 @@ fun SongSelectionScreen(
 @Composable
 private fun SongCard(
     song: Song,
+    notationSystem: NotationSystem,
     onClick: () -> Unit
 ) {
     val (badgeText, badgeColor) = when (song.difficulty) {
@@ -174,11 +196,11 @@ private fun SongCard(
         DifficultyLevel.INTERMEDIATE -> "Level 3: Classical" to Amber500
     }
 
-    val noteRangeSummary = remember(song) {
+    val noteRangeSummary = remember(song, notationSystem) {
         val uniqueNotes = song.notes.map { it.midiNote }.distinct().sorted()
         if (uniqueNotes.isNotEmpty()) {
-            val minName = NoteEvent.midiToNoteName(uniqueNotes.first())
-            val maxName = NoteEvent.midiToNoteName(uniqueNotes.last())
+            val minName = NoteEvent.midiToNoteName(uniqueNotes.first(), notationSystem)
+            val maxName = NoteEvent.midiToNoteName(uniqueNotes.last(), notationSystem)
             "Range: $minName – $maxName"
         } else {
             ""

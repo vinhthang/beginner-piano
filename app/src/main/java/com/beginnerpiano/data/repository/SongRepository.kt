@@ -31,12 +31,22 @@ object SongRepository {
         createWeWillRockYou(),
         createBabyShark(),
         createStandByMe(),
+        createRowRowRowYourBoat(),
+        createVivaldiSpring(),
+        createGoTellAuntRhody(),
 
         // Level 2: Elementary (1-Octave Melodies & Scale Drills)
         createTwinkleTwinkle(),
         createFrereJacques(),
         createBrahmsLullaby(),
         createCMajorScale(),
+        createHappyBirthday(),
+        createLondonBridge(),
+        createOldMacDonald(),
+        createBaaBaaBlackSheep(),
+        createWheelsOnTheBus(),
+        createSwanLakeTheme(),
+        createBrahmsWaltz(),
 
         // Level 3: Intermediate (Classical Beginner Repertoire)
         createBeyerOp101No8(),
@@ -482,6 +492,66 @@ object SongRepository {
         )
     }
 
+    private fun createRowRowRowYourBoat(): Song {
+        // Traditional Folk: Row, Row, Row Your Boat
+        val noteMidis = listOf(
+            60, 60, 60, 62, 64,
+            64, 62, 64, 65, 67,
+            67, 67, 67, 64, 64, 64, 60, 60, 60,
+            67, 65, 64, 62, 60
+        )
+        return Song(
+            id = "row_row_row_your_boat",
+            title = "Row, Row, Row Your Boat",
+            composer = "Traditional Folk",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 60,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createVivaldiSpring(): Song {
+        // Antonio Vivaldi: Spring (The Four Seasons)
+        val noteMidis = listOf(
+            64, 67, 67, 67, 65, 64, 62, 60, 67,
+            64, 67, 67, 67, 65, 64, 62, 60, 67,
+            64, 65, 67, 65, 64, 62, 64, 65, 67, 65, 64, 62, 60
+        )
+        return Song(
+            id = "vivaldi_spring",
+            title = "Spring (The Four Seasons)",
+            composer = "Antonio Vivaldi",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 70,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createGoTellAuntRhody(): Song {
+        // American Folk Song: Go Tell Aunt Rhody
+        val noteMidis = listOf(
+            64, 64, 62, 60,
+            62, 62, 64, 62, 60,
+            67, 67, 65, 64, 65, 65, 67, 65, 64,
+            64, 64, 62, 60,
+            62, 62, 64, 62, 60
+        )
+        return Song(
+            id = "aunt_rhody",
+            title = "Go Tell Aunt Rhody",
+            composer = "American Folk Song",
+            difficulty = DifficultyLevel.BEGINNER,
+            defaultBpm = 60,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
     // --- LEVEL 2: ELEMENTARY (1-Octave & Scale Drills) ---
 
     private fun createTwinkleTwinkle(): Song {
@@ -575,6 +645,152 @@ object SongRepository {
                     clef = ClefType.TREBLE,
                     fingerHint = if (idx <= 7) (idx % 5) + 1 else null
                 )
+            }
+        )
+    }
+
+    private fun createHappyBirthday(): Song {
+        // Traditional: Happy Birthday to You
+        val noteMidis = listOf(
+            60, 60, 62, 60, 65, 64,
+            60, 60, 62, 60, 67, 65,
+            60, 60, 72, 69, 65, 64, 62,
+            70, 70, 69, 65, 67, 65
+        )
+        return Song(
+            id = "happy_birthday",
+            title = "Happy Birthday to You",
+            composer = "Traditional",
+            difficulty = DifficultyLevel.ELEMENTARY,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createLondonBridge(): Song {
+        // English Nursery Song: London Bridge is Falling Down
+        val noteMidis = listOf(
+            67, 69, 67, 65, 64, 65, 67,
+            62, 64, 65,
+            64, 65, 67,
+            67, 69, 67, 65, 64, 65, 67,
+            62, 67, 64, 60
+        )
+        return Song(
+            id = "london_bridge",
+            title = "London Bridge is Falling Down",
+            composer = "English Nursery Song",
+            difficulty = DifficultyLevel.ELEMENTARY,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createOldMacDonald(): Song {
+        // Traditional American: Old MacDonald Had a Farm
+        val noteMidis = listOf(
+            60, 60, 60, 67, 69, 69, 67,
+            64, 64, 62, 62, 60,
+            67, 67, 60, 60, 60,
+            67, 67, 60, 60, 60,
+            60, 60, 60, 67, 69, 69, 67,
+            64, 64, 62, 62, 60
+        )
+        return Song(
+            id = "old_macdonald",
+            title = "Old MacDonald Had a Farm",
+            composer = "Traditional American",
+            difficulty = DifficultyLevel.ELEMENTARY,
+            defaultBpm = 70,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createBaaBaaBlackSheep(): Song {
+        // Traditional Nursery: Baa Baa Black Sheep
+        val noteMidis = listOf(
+            60, 60, 67, 67, 69, 69, 69, 69, 67,
+            65, 65, 64, 64, 62, 62, 60,
+            67, 67, 67, 65, 64, 64, 64, 62,
+            67, 67, 65, 65, 64, 64, 62,
+            60, 60, 67, 67, 69, 69, 69, 69, 67,
+            65, 65, 64, 64, 62, 62, 60
+        )
+        return Song(
+            id = "baa_baa_black_sheep",
+            title = "Baa Baa Black Sheep",
+            composer = "Traditional Nursery",
+            difficulty = DifficultyLevel.ELEMENTARY,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createWheelsOnTheBus(): Song {
+        // Traditional Children's: The Wheels on the Bus
+        val noteMidis = listOf(
+            60, 65, 65, 65, 65, 69, 72, 69, 65,
+            67, 64, 60,
+            69, 65, 60, 60,
+            65, 65, 65, 65, 69, 72, 69, 65,
+            67, 60, 65
+        )
+        return Song(
+            id = "wheels_on_the_bus",
+            title = "The Wheels on the Bus",
+            composer = "Traditional Children's",
+            difficulty = DifficultyLevel.ELEMENTARY,
+            defaultBpm = 75,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createSwanLakeTheme(): Song {
+        // Pyotr Ilyich Tchaikovsky: Theme from Swan Lake
+        val noteMidis = listOf(
+            69, 64, 69, 71, 72, 71, 69,
+            64, 65, 64, 62, 64,
+            69, 64, 69, 71, 72, 71, 69,
+            64, 65, 64, 62, 60
+        )
+        return Song(
+            id = "swan_lake_theme",
+            title = "Theme from Swan Lake",
+            composer = "Pyotr Ilyich Tchaikovsky",
+            difficulty = DifficultyLevel.ELEMENTARY,
+            defaultBpm = 55,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
+            }
+        )
+    }
+
+    private fun createBrahmsWaltz(): Song {
+        // Johannes Brahms: Waltz (Op. 39 No. 15)
+        val noteMidis = listOf(
+            64, 67, 67, 64, 67, 67,
+            64, 67, 72, 71, 69, 67, 65, 64, 62,
+            62, 65, 65, 62, 65, 65,
+            62, 65, 71, 69, 67, 65, 64, 62, 60
+        )
+        return Song(
+            id = "brahms_waltz",
+            title = "Waltz (Op. 39 No. 15)",
+            composer = "Johannes Brahms",
+            difficulty = DifficultyLevel.ELEMENTARY,
+            defaultBpm = 65,
+            notes = noteMidis.map { midi ->
+                NoteEvent(midiNote = midi, durationBeats = 1.0, clef = ClefType.TREBLE)
             }
         )
     }

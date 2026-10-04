@@ -13,6 +13,9 @@ class YinPitchDetector(
     private val rmsNoiseFloor: Double = 0.015
 ) : PitchDetector {
 
+    override val name: String = "YIN (DSP)"
+    override val type: PitchDetectorType = PitchDetectorType.YIN
+
     override fun detectPitch(buffer: FloatArray, sampleRate: Int): DetectedPitch {
         val bufferSize = buffer.size
         if (bufferSize < 512) return DetectedPitch.SILENCE

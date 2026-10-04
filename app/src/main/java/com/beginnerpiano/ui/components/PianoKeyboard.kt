@@ -34,6 +34,8 @@ import com.beginnerpiano.ui.theme.Rose500
 import com.beginnerpiano.ui.theme.Slate800
 import com.beginnerpiano.ui.theme.Slate900
 
+import com.beginnerpiano.data.models.NotationSystem
+
 private data class KeySpec(
     val midi: Int,
     val name: String,
@@ -47,7 +49,8 @@ fun PianoKeyboard(
     detectedMidi: Int?,
     feedbackStatus: NoteFeedbackStatus,
     onKeyTapped: (Int) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    notation: NotationSystem = NotationSystem.SOLFEGE
 ) {
     val scrollState = rememberScrollState()
 
@@ -127,7 +130,7 @@ fun PianoKeyboard(
                     contentAlignment = Alignment.BottomCenter
                 ) {
                     Text(
-                        text = key.name,
+                        text = NoteEvent.midiToNoteName(key.midi, notation),
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (isTarget) Indigo500 else Slate800,
@@ -157,8 +160,18 @@ fun PianoKeyboard(
                     .zIndex(10f)
                     .shadow(4.dp, RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp))
                     .background(bgColor, RoundedCornerShape(bottomStart = 3.dp, bottomEnd = 3.dp))
-                    .clickable { onKeyTapped(key.midi) }
-            )
+                    .clickable { onKeyTapped(key.midi) },
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Text(
+                    text = NoteEvent.midiToNoteName(key.midi, notation),
+                    fontSize = 7.5.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color.White.copy(alpha = 0.85f),
+                    modifier = Modifier.padding(bottom = 4.dp),
+                    maxLines = 1
+                )
+            }
         }
     }
 }

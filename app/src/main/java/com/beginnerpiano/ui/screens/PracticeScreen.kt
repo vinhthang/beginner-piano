@@ -24,6 +24,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,14 +35,18 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import com.beginnerpiano.audio.PitchDetectorType
+import com.beginnerpiano.data.models.NoteEvent
 import com.beginnerpiano.practice.PracticeMode
 import com.beginnerpiano.practice.PracticeViewModel
 import com.beginnerpiano.ui.components.PianoKeyboard
 import com.beginnerpiano.ui.components.PracticeHud
+import com.beginnerpiano.ui.components.SettingsDialog
 import com.beginnerpiano.ui.components.StaffCanvas
 import androidx.compose.ui.platform.LocalConfiguration
 import com.beginnerpiano.ui.theme.Emerald500
 import com.beginnerpiano.ui.theme.Indigo500
+import com.beginnerpiano.ui.theme.Rose500
 import com.beginnerpiano.ui.theme.Slate400
 
 @Composable
@@ -52,6 +59,7 @@ fun PracticeScreen(
     val detectedPitch by viewModel.detectedPitch.collectAsState()
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
+    var showSettings by remember { mutableStateOf(false) }
 
     Column(
         modifier = modifier
@@ -94,6 +102,9 @@ fun PracticeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Target note badge
+                    val targetName = practiceState.currentTargetNote?.let {
+                        NoteEvent.midiToNoteName(it.midiNote, practiceState.notationSystem)
+                    } ?: "-"
                     Box(
                         modifier = Modifier
                             .clip(RoundedCornerShape(6.dp))
@@ -101,7 +112,7 @@ fun PracticeScreen(
                             .padding(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = "Target: ${practiceState.currentTargetNote?.midiNote ?: "-"}",
+                            text = "Target: $targetName",
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Indigo500
@@ -123,17 +134,17 @@ fun PracticeScreen(
                         )
                     }
 
-                    // Mode button
+                    // Play Demo / Stop button
                     Button(
-                        onClick = { viewModel.toggleMode() },
+                        onClick = { viewModel.toggleDemoPlayback() },
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) Indigo500 else Emerald500
+                            containerColor = if (practiceState.isPlayingDemo) Rose500 else Emerald500
                         ),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) "Wait-For-Note" else "Tempo",
+                            text = if (practiceState.isPlayingDemo) "⏹ Stop" else "▶ Play Demo",
                             fontSize = 11.sp
                         )
                     }
@@ -145,6 +156,15 @@ fun PracticeScreen(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
                         Text("Restart", fontSize = 11.sp)
+                    }
+
+                    // Settings button
+                    OutlinedButton(
+                        onClick = { showSettings = true },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text("⚙ Settings", fontSize = 11.sp)
                     }
                 }
             }
@@ -178,16 +198,17 @@ fun PracticeScreen(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Mode Toggle Button
+                    // Play Demo / Stop Button
                     Button(
-                        onClick = { viewModel.toggleMode() },
+                        onClick = { viewModel.toggleDemoPlayback() },
                         shape = RoundedCornerShape(8.dp),
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) Indigo500 else Emerald500
-                        )
+                            containerColor = if (practiceState.isPlayingDemo) Rose500 else Emerald500
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = if (practiceState.mode == PracticeMode.WAIT_FOR_NOTE) "Wait-For-Note" else "Tempo",
+                            text = if (practiceState.isPlayingDemo) "⏹ Stop" else "▶ Play Demo",
                             fontSize = 11.sp
                         )
                     }
@@ -195,9 +216,19 @@ fun PracticeScreen(
                     // Restart Button
                     OutlinedButton(
                         onClick = { viewModel.restart() },
-                        shape = RoundedCornerShape(8.dp)
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text("Restart", fontSize = 11.sp)
+                    }
+
+                    // Settings Button
+                    OutlinedButton(
+                        onClick = { showSettings = true },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text("⚙ Settings", fontSize = 11.sp)
                     }
                 }
             }
@@ -206,6 +237,7 @@ fun PracticeScreen(
             PracticeHud(
                 practiceState = practiceState,
                 detectedPitch = detectedPitch,
+                onOpenSettings = { showSettings = true },
                 modifier = Modifier.padding(vertical = 8.dp)
             )
         }
@@ -224,6 +256,7 @@ fun PracticeScreen(
                 notes = practiceState.song.notes,
                 activeIndex = practiceState.currentNoteIndex,
                 feedbackStatus = practiceState.feedbackStatus,
+                notation = practiceState.notationSystem,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(vertical = if (isLandscape) 8.dp else 12.dp)
@@ -235,10 +268,24 @@ fun PracticeScreen(
             targetMidi = practiceState.currentTargetNote?.midiNote,
             detectedMidi = practiceState.lastDetectedMidi,
             feedbackStatus = practiceState.feedbackStatus,
+            notation = practiceState.notationSystem,
             onKeyTapped = { midi -> viewModel.onKeyTapped(midi) },
             modifier = Modifier
                 .padding(top = if (isLandscape) 4.dp else 8.dp)
                 .height(if (isLandscape) 100.dp else 130.dp)
+        )
+    }
+
+    // Settings Dialog
+    if (showSettings) {
+        SettingsDialog(
+            currentNotation = practiceState.notationSystem,
+            onNotationChanged = { viewModel.setNotationSystem(it) },
+            currentPitchDetector = practiceState.pitchDetectorType,
+            onPitchDetectorChanged = { viewModel.setPitchDetectorType(it) },
+            currentMode = practiceState.mode,
+            onModeChanged = { viewModel.setMode(it) },
+            onDismissRequest = { showSettings = false }
         )
     }
 
