@@ -16,6 +16,7 @@ import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.unit.dp
 import com.beginnerpiano.data.models.NotationSystem
 import com.beginnerpiano.data.models.NoteEvent
+import com.beginnerpiano.practice.FingeringEngine
 import com.beginnerpiano.practice.NoteFeedbackStatus
 import com.beginnerpiano.ui.theme.Emerald500
 import com.beginnerpiano.ui.theme.Indigo500
@@ -112,16 +113,40 @@ fun StaffCanvas(
                     strokeWidth = 2.2f
                 )
 
-                // Draw Note Name above current note
+                // Draw subtle finger number for note
+                val finger = FingeringEngine.resolveFinger(note)
+                val fingerColor = FingeringEngine.getFingerColor(finger)
+                drawContext.canvas.nativeCanvas.apply {
+                    val fPaint = android.graphics.Paint().apply {
+                        color = if (isCurrent) fingerColor.hashCode() else Slate400.copy(alpha = 0.65f).hashCode()
+                        textSize = 24f
+                        textAlign = android.graphics.Paint.Align.CENTER
+                        isFakeBoldText = isCurrent
+                    }
+                    drawText("$finger", noteX, noteY + 18.dp.toPx(), fPaint)
+                }
+
+                // Draw Note Name and Hand Fingering above current note
                 if (isCurrent) {
+                    val handCenterY = (noteY - 60.dp.toPx()).coerceAtLeast(24.dp.toPx())
+                    drawHandFingering(
+                        finger = finger,
+                        centerX = noteX,
+                        centerY = handCenterY,
+                        size = 28.dp.toPx(),
+                        activeColor = fingerColor,
+                        showNumberBadge = true
+                    )
+
                     drawContext.canvas.nativeCanvas.apply {
                         val paint = android.graphics.Paint().apply {
                             color = activeColor.hashCode()
-                            textSize = 34f
+                            textSize = 32f
                             textAlign = android.graphics.Paint.Align.CENTER
                             isFakeBoldText = true
                         }
-                        drawText(NoteEvent.midiToNoteName(note.midiNote, notation), noteX, noteY - 44.dp.toPx(), paint)
+                        val textY = (noteY - 38.dp.toPx()).coerceAtLeast(handCenterY + 22.dp.toPx())
+                        drawText(NoteEvent.midiToNoteName(note.midiNote, notation), noteX, textY, paint)
                     }
                 }
             }
@@ -129,15 +154,20 @@ fun StaffCanvas(
     }
 }
 
-private fun DrawScope.drawTrebleClefIndicator(centerY: Float, lineSpacing: Float) {
+internal fun DrawScope.drawTrebleClefIndicator(
+    centerY: Float,
+    lineSpacing: Float,
+    x: Float = 24.dp.toPx(),
+    textSize: Float = 140f
+) {
     // Stylized G-clef anchor glyph on left
     drawContext.canvas.nativeCanvas.apply {
         val paint = android.graphics.Paint().apply {
             color = android.graphics.Color.GRAY
-            textSize = 140f
+            this.textSize = textSize
             textAlign = android.graphics.Paint.Align.LEFT
         }
-        drawText("𝄞", 24.dp.toPx(), centerY + 1.8f * lineSpacing, paint)
+        drawText("𝄞", x, centerY + 1.8f * lineSpacing, paint)
     }
 }
 
@@ -148,7 +178,7 @@ private fun DrawScope.drawTrebleClefIndicator(centerY: Float, lineSpacing: Float
  * F5 = 77 (step 8), G5 = 79 (step 9).
  * Below staff: D4 = 62 (step -1), C4 = 60 (step -2).
  */
-private fun diatonicStepFromE4(midi: Int): Int {
+internal fun diatonicStepFromE4(midi: Int): Int {
     return when (midi) {
         60 -> -2 // C4 (Middle C)
         61 -> -2 // C#4

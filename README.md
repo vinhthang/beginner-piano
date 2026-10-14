@@ -7,7 +7,13 @@ An Android application built with Kotlin and Jetpack Compose designed to teach b
 ## Features
 
 * **Real-Time Microphone Pitch Detection**: Uses the YIN algorithm with sub-bin parabolic interpolation and RMS noise gating to detect monophonic piano notes with low latency.
-* **Interactive Musical Staff**: 5-line Treble Clef canvas showing notes, ledger lines (Middle C), and an animated playhead ribbon.
+* **Interactive Musical Staff & Full Wrapped Score**:
+  * **Portrait Mode**: 5-line Treble Clef canvas showing notes, ledger lines (Middle C), and an animated playhead ribbon.
+  * **Landscape / Horizon View**: Multi-system wrapped sheet music (`WrappedStaffCanvas`) displaying the full piece across multiple staff rows with measure barlines, clefs, and real-time note tracking.
+* **Hand Fingering Guidance with Color-Coded Fingers**:
+  * Stylized 5-finger hand diagram rendered directly above the active note and in the practice HUD.
+  * The designated playing finger (1 to 5) is highlighted with its specific color: **1 (Thumb)**: Blue, **2 (Index)**: Emerald Green, **3 (Middle)**: Amber, **4 (Ring)**: Orange, **5 (Pinky)**: Rose.
+  * Powered by `FingeringEngine` with automated beginner C-position heuristic fallbacks.
 * **Wait-For-Note Practice Mode**: The sheet music pauses on each note until you strike the correct key on your piano.
 * **Responsive Reference Piano**: On-screen 2-octave piano keyboard highlighting the active target key and showing real-time feedback (green on hit, red on mismatch). Also supports touch taps for testing without a real piano.
 * **Curated Beginner Curriculum**:
@@ -35,23 +41,28 @@ beginner-piano/
 │   │   │   │   ├── models/Song.kt       # Song, NoteEvent, and pitch conversion
 │   │   │   │   └── repository/SongRepository.kt # Bundled beginner library
 │   │   │   ├── practice/
+│   │   │   │   ├── FingeringEngine.kt   # 5-finger mapping, heuristics & color palette
 │   │   │   │   ├── PracticeEngine.kt    # Wait-for-Note state machine
 │   │   │   │   └── PracticeViewModel.kt # StateFlow bridge
 │   │   │   └── ui/
 │   │   │       ├── theme/               # Material 3 colors, typography, theme
 │   │   │       ├── components/
-│   │   │       │   ├── StaffCanvas.kt   # 5-line musical staff renderer
-│   │   │       │   ├── PianoKeyboard.kt # 2-octave reference keyboard
-│   │   │       │   └── PracticeHud.kt   # Real-time target and mic HUD
+│   │   │       │   ├── HandFingering.kt      # 5-finger hand vector graphic & badges
+│   │   │       │   ├── StaffCanvas.kt        # 5-line scrolling musical staff
+│   │   │       │   ├── WrappedStaffCanvas.kt # Multi-system wrapped sheet score
+│   │   │       │   ├── PianoKeyboard.kt      # 2-octave reference keyboard
+│   │   │       │   └── PracticeHud.kt        # Real-time target and mic HUD
 │   │   │       └── screens/
 │   │   │           ├── SongSelectionScreen.kt
 │   │   │           └── PracticeScreen.kt
 │   │   └── res/                         # Strings, icons, themes
 │   └── src/test/
 │       └── java/com/beginnerpiano/
+│           ├── FingeringEngineTest.kt   # 5-finger mapping & heuristic tests
 │           ├── YinPitchDetectorTest.kt  # Synthetic sine wave pitch tests
 │           ├── PracticeEngineTest.kt    # Progression & state machine tests
 │           └── SongRepositoryTest.kt    # Song data integrity tests
+├── docs/specs/                          # 5-Document Architecture specifications
 ├── build.gradle.kts                     # Root build configuration
 ├── settings.gradle.kts                  # Module settings & repos
 ├── gradle.properties                    # Memory & AndroidX flags

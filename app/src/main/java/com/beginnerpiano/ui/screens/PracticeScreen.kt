@@ -37,12 +37,15 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import com.beginnerpiano.audio.PitchDetectorType
 import com.beginnerpiano.data.models.NoteEvent
+import com.beginnerpiano.practice.FingeringEngine
 import com.beginnerpiano.practice.PracticeMode
 import com.beginnerpiano.practice.PracticeViewModel
+import com.beginnerpiano.ui.components.HandFingeringBadge
 import com.beginnerpiano.ui.components.PianoKeyboard
 import com.beginnerpiano.ui.components.PracticeHud
 import com.beginnerpiano.ui.components.SettingsDialog
 import com.beginnerpiano.ui.components.StaffCanvas
+import com.beginnerpiano.ui.components.WrappedStaffCanvas
 import androidx.compose.ui.platform.LocalConfiguration
 import com.beginnerpiano.ui.theme.Emerald500
 import com.beginnerpiano.ui.theme.Indigo500
@@ -102,7 +105,8 @@ fun PracticeScreen(
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     // Target note badge
-                    val targetName = practiceState.currentTargetNote?.let {
+                    val targetNote = practiceState.currentTargetNote
+                    val targetName = targetNote?.let {
                         NoteEvent.midiToNoteName(it.midiNote, practiceState.notationSystem)
                     } ?: "-"
                     Box(
@@ -116,6 +120,15 @@ fun PracticeScreen(
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
                             color = Indigo500
+                        )
+                    }
+
+                    // Target hand fingering badge
+                    if (targetNote != null) {
+                        val finger = FingeringEngine.resolveFinger(targetNote)
+                        HandFingeringBadge(
+                            finger = finger,
+                            size = 20.dp
                         )
                     }
 
@@ -252,15 +265,27 @@ fun PracticeScreen(
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            StaffCanvas(
-                notes = practiceState.song.notes,
-                activeIndex = practiceState.currentNoteIndex,
-                feedbackStatus = practiceState.feedbackStatus,
-                notation = practiceState.notationSystem,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(vertical = if (isLandscape) 8.dp else 12.dp)
-            )
+            if (isLandscape) {
+                WrappedStaffCanvas(
+                    notes = practiceState.song.notes,
+                    activeIndex = practiceState.currentNoteIndex,
+                    feedbackStatus = practiceState.feedbackStatus,
+                    notation = practiceState.notationSystem,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 4.dp, horizontal = 6.dp)
+                )
+            } else {
+                StaffCanvas(
+                    notes = practiceState.song.notes,
+                    activeIndex = practiceState.currentNoteIndex,
+                    feedbackStatus = practiceState.feedbackStatus,
+                    notation = practiceState.notationSystem,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(vertical = 12.dp)
+                )
+            }
         }
 
         // 4. Interactive Reference Piano Keyboard
