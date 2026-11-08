@@ -87,6 +87,56 @@ class PianoAudioSynthesizer(
     }
 
     /**
+     * Plays a metronome woodblock click asynchronously.
+     */
+    fun playMetronomeClick(isDownbeat: Boolean = false) {
+        scope.launch {
+            try {
+                val samples = generateMetronomeClickSamples(isDownbeat, sampleRate)
+                if (samples.isEmpty()) return@launch
+
+                val bufferSize = samples.size * 2
+                val track = try {
+                    AudioTrack.Builder()
+                        .setAudioAttributes(
+                            AudioAttributes.Builder()
+                                .setUsage(AudioAttributes.USAGE_MEDIA)
+                                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                                .build()
+                        )
+                        .setAudioFormat(
+                            AudioFormat.Builder()
+                                .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
+                                .setSampleRate(sampleRate)
+                                .setChannelMask(AudioFormat.CHANNEL_OUT_MONO)
+                                .build()
+                        )
+                        .setBufferSizeInBytes(bufferSize)
+                        .setTransferMode(AudioTrack.MODE_STATIC)
+                        .build()
+                } catch (e: Throwable) {
+                    null
+                } ?: return@launch
+
+                track.write(samples, 0, samples.size)
+                if (track.state == AudioTrack.STATE_INITIALIZED) {
+                    track.play()
+                }
+
+                delay(35L)
+                try {
+                    track.stop()
+                    track.release()
+                } catch (e: Throwable) {
+                    // Ignore release errors
+                }
+            } catch (e: Throwable) {
+                // Graceful fallback
+            }
+        }
+    }
+
+    /**
      * Stops active audio playback immediately.
      */
     fun stop() {
@@ -120,6 +170,54 @@ class PianoAudioSynthesizer(
          */
         fun midiToFrequency(midiNote: Int): Double {
             return 440.0 * 2.0.pow((midiNote - 69).toDouble() / 12.0)
+        }
+
+        /**
+         * Pure function generating a 25ms percussive woodblock metronome click.
+         */
+        fun generateMetronomeClickSamples(
+            isDownbeat: Boolean = false,
+            sampleRate: Int = 44100
+        ): ShortArray {
+            val durationMs = 25.0
+            val numSamples = ((sampleRate.toDouble() * durationMs) / 1000.0).toInt()
+            if (numSamples <= 0) return ShortArray(0)
+
+            val f0 = if (isDownbeat) 1200.0 else 850.0
+            val f1 = f0 * 2.0
+            val samples = ShortArray(numSamples)
+
+            val attackMs = 2.0
+            val attackSamples = ((sampleRate * attackMs) / 1000.0).toInt().coerceAtLeast(1)
+            val releaseMs = 2.0
+            val releaseSamples = ((sampleRate * releaseMs) / 1000.0).toInt().coerceIn(1, numSamples / 2)
+
+            val peakAmplitude = 22000.0
+
+            for (i in 0 until numSamples) {
+                val t = i.toDouble() / sampleRate
+                val rawWave = (sin(2.0 * PI * f0 * t) + 0.5 * sin(2.0 * PI * f1 * t)) / 1.5
+                val decay = exp(-140.0 * t)
+
+                val attack = if (i < attackSamples) {
+                    i.toDouble() / attackSamples
+                } else {
+                    1.0
+                }
+
+                val release = if (i >= numSamples - releaseSamples) {
+                    (numSamples - 1 - i).toDouble() / releaseSamples
+                } else {
+                    1.0
+                }
+
+                val sampleVal = (rawWave * decay * attack * release * peakAmplitude)
+                    .roundToInt()
+                    .coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+
+                samples[i] = sampleVal.toShort()
+            }
+            return samples
         }
 
         /**

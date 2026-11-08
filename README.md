@@ -14,7 +14,15 @@ An Android application built with Kotlin and Jetpack Compose designed to teach b
   * Stylized 5-finger hand diagram rendered directly above the active note and in the practice HUD.
   * The designated playing finger (1 to 5) is highlighted with its specific color: **1 (Thumb)**: Blue, **2 (Index)**: Emerald Green, **3 (Middle)**: Amber, **4 (Ring)**: Orange, **5 (Pinky)**: Rose.
   * Powered by `FingeringEngine` with automated beginner C-position heuristic fallbacks.
-* **Wait-For-Note Practice Mode**: The sheet music pauses on each note until you strike the correct key on your piano.
+* **Wait-For-Note & Active Tempo Practice Modes**:
+  * **Wait-For-Note Mode**: The sheet music pauses on each note until you strike the correct key on your piano.
+  * **Active Tempo Mode & Metronome**: Real-time beat clock advances at the song's BPM (scaled by a **0.5x / 0.75x / 1.0x / 1.25x** speed multiplier) with a toggleable synthesized metronome click and beat-window timeout grading.
+* **True Musical Notation & Interactive A–B Section Looping**:
+  * Renders duration-accurate whole notes, stemmed half notes, filled quarter notes, flagged eighth notes, augmentation dots, and sharp (`♯`) accidentals across both portrait and landscape staves.
+  * **A–B Loop Selection**: Tap any two notes on the staff (or toggle the A–B Loop bar) to isolate and repeat tricky measures continuously.
+* **Persistent 3-Star Song Mastery & Custom MIDI Import**:
+  * Tracks personal best accuracy %, streak, and 1–3 star ratings (`★★★`) across sessions.
+  * **+ Import MIDI**: Import any `.mid` / `.midi` file from device storage to practice custom songs alongside the 31 built-in beginner pieces.
 * **Responsive Reference Piano**: On-screen 2-octave piano keyboard highlighting the active target key and showing real-time feedback (green on hit, red on mismatch). Also supports touch taps for testing without a real piano.
 * **Curated Beginner Curriculum**:
   * *Ode to Joy* (Ludwig van Beethoven)

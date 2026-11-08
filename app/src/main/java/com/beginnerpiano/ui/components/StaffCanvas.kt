@@ -1,9 +1,9 @@
 package com.beginnerpiano.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -13,6 +13,7 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.dp
 import com.beginnerpiano.data.models.NotationSystem
 import com.beginnerpiano.data.models.NoteEvent
@@ -23,6 +24,7 @@ import com.beginnerpiano.ui.theme.Indigo500
 import com.beginnerpiano.ui.theme.Rose500
 import com.beginnerpiano.ui.theme.Slate400
 import com.beginnerpiano.ui.theme.Slate700
+import kotlin.math.roundToInt
 
 @Composable
 fun StaffCanvas(
@@ -32,7 +34,10 @@ fun StaffCanvas(
     modifier: Modifier = Modifier
         .fillMaxWidth()
         .height(160.dp),
-    notation: NotationSystem = NotationSystem.SOLFEGE
+    notation: NotationSystem = NotationSystem.SOLFEGE,
+    loopStartIndex: Int? = null,
+    loopEndIndex: Int? = null,
+    onNoteTapped: ((Int) -> Unit)? = null
 ) {
     val staffLineColor = Slate400
     val activeColor = when (feedbackStatus) {
@@ -41,7 +46,19 @@ fun StaffCanvas(
         NoteFeedbackStatus.IDLE -> Indigo500
     }
 
-    Canvas(modifier = modifier) {
+    val pointerModifier = if (onNoteTapped != null && notes.isNotEmpty()) {
+        Modifier.pointerInput(notes, activeIndex) {
+            detectTapGestures { tapOffset ->
+                val noteSpacing = 55.dp.toPx()
+                val anchorX = size.width * 0.28f
+                val tappedIndex = ((tapOffset.x - anchorX) / noteSpacing + activeIndex).roundToInt()
+                    .coerceIn(0, notes.lastIndex)
+                onNoteTapped(tappedIndex)
+            }
+        }
+    } else Modifier
+
+    Canvas(modifier = modifier.then(pointerModifier)) {
         val width = size.width
         val height = size.height
         val centerY = height / 2f
@@ -73,6 +90,40 @@ fun StaffCanvas(
         // Draw Treble Clef symbol indicator
         drawTrebleClefIndicator(centerY, lineSpacing)
 
+        // Draw Active A-B Loop highlight bracket & region
+        if (loopStartIndex != null && loopEndIndex != null && loopStartIndex <= loopEndIndex) {
+            val loopStartX = anchorX + (loopStartIndex - activeIndex) * noteSpacing - 22.dp.toPx()
+            val loopEndX = anchorX + (loopEndIndex - activeIndex) * noteSpacing + 22.dp.toPx()
+
+            drawRect(
+                color = Indigo500.copy(alpha = 0.08f),
+                topLeft = Offset(loopStartX, 12.dp.toPx()),
+                size = Size(maxOf(0f, loopEndX - loopStartX), height - 24.dp.toPx())
+            )
+            drawLine(
+                color = Indigo500.copy(alpha = 0.8f),
+                start = Offset(loopStartX, 12.dp.toPx()),
+                end = Offset(loopStartX, height - 12.dp.toPx()),
+                strokeWidth = 2.5f
+            )
+            drawLine(
+                color = Indigo500.copy(alpha = 0.8f),
+                start = Offset(loopEndX, 12.dp.toPx()),
+                end = Offset(loopEndX, height - 12.dp.toPx()),
+                strokeWidth = 2.5f
+            )
+            drawContext.canvas.nativeCanvas.apply {
+                val tagPaint = android.graphics.Paint().apply {
+                    color = Indigo500.hashCode()
+                    textSize = 24f
+                    textAlign = android.graphics.Paint.Align.CENTER
+                    isFakeBoldText = true
+                }
+                drawText("A", loopStartX, 24.dp.toPx(), tagPaint)
+                drawText("B", loopEndX, 24.dp.toPx(), tagPaint)
+            }
+        }
+
         // Draw Notes
         notes.forEachIndexed { index, note ->
             val noteX = anchorX + (index - activeIndex) * noteSpacing
@@ -98,20 +149,69 @@ fun StaffCanvas(
                     )
                 }
 
-                // Draw Note Head (Tilted Ellipse approximation)
-                drawOval(
-                    color = noteColor,
-                    topLeft = Offset(noteX - 9.dp.toPx(), noteY - 6.5.dp.toPx()),
-                    size = Size(18.dp.toPx(), 13.dp.toPx())
-                )
+                // Accidentals: Draw Sharp symbol if note is sharp (REQ-005)
+                if (NoteNotationHelper.isSharp(note.midiNote)) {
+                    drawContext.canvas.nativeCanvas.apply {
+                        val sharpPaint = android.graphics.Paint().apply {
+                            color = noteColor.hashCode()
+                            textSize = 30f
+                            textAlign = android.graphics.Paint.Align.RIGHT
+                            isFakeBoldText = true
+                        }
+                        drawText("♯", noteX - 11.dp.toPx(), noteY + 5.dp.toPx(), sharpPaint)
+                    }
+                }
 
-                // Draw Note Stem (pointing up)
-                drawLine(
-                    color = noteColor,
-                    start = Offset(noteX + 8.dp.toPx(), noteY),
-                    end = Offset(noteX + 8.dp.toPx(), noteY - 36.dp.toPx()),
-                    strokeWidth = 2.2f
-                )
+                // Duration-accurate Note Head (REQ-005)
+                val headType = NoteNotationHelper.getNoteHeadType(note.durationBeats)
+                if (headType == NoteHeadType.WHOLE || headType == NoteHeadType.HALF) {
+                    // Hollow oval for WHOLE and HALF
+                    drawOval(
+                        color = noteColor,
+                        topLeft = Offset(noteX - 9.dp.toPx(), noteY - 6.5.dp.toPx()),
+                        size = Size(18.dp.toPx(), 13.dp.toPx()),
+                        style = Stroke(width = 2.4f)
+                    )
+                } else {
+                    // Filled oval for QUARTER and EIGHTH
+                    drawOval(
+                        color = noteColor,
+                        topLeft = Offset(noteX - 9.dp.toPx(), noteY - 6.5.dp.toPx()),
+                        size = Size(18.dp.toPx(), 13.dp.toPx())
+                    )
+                }
+
+                // Augmentation Dot (REQ-005)
+                if (NoteNotationHelper.isDotted(note.durationBeats)) {
+                    drawCircle(
+                        color = noteColor,
+                        radius = 2.5.dp.toPx(),
+                        center = Offset(noteX + 14.dp.toPx(), noteY)
+                    )
+                }
+
+                // Note Stem and Flag (REQ-005)
+                if (headType != NoteHeadType.WHOLE) {
+                    // Vertical stem pointing up
+                    drawLine(
+                        color = noteColor,
+                        start = Offset(noteX + 8.dp.toPx(), noteY),
+                        end = Offset(noteX + 8.dp.toPx(), noteY - 36.dp.toPx()),
+                        strokeWidth = 2.2f
+                    )
+
+                    // Eighth-note flag
+                    if (headType == NoteHeadType.EIGHTH) {
+                        val flagPath = Path().apply {
+                            moveTo(noteX + 8.dp.toPx(), noteY - 36.dp.toPx())
+                            quadraticTo(
+                                noteX + 18.dp.toPx(), noteY - 26.dp.toPx(),
+                                noteX + 16.dp.toPx(), noteY - 14.dp.toPx()
+                            )
+                        }
+                        drawPath(path = flagPath, color = noteColor, style = Stroke(width = 2.5f))
+                    }
+                }
 
                 // Draw subtle finger number for note
                 val finger = FingeringEngine.resolveFinger(note)
@@ -171,13 +271,6 @@ internal fun DrawScope.drawTrebleClefIndicator(
     }
 }
 
-/**
- * Calculates vertical step offset on the Treble staff where E4 = 0.
- * E4 = 64 (step 0), F4 = 65 (step 1), G4 = 67 (step 2), A4 = 69 (step 3),
- * B4 = 71 (step 4), C5 = 72 (step 5), D5 = 74 (step 6), E5 = 76 (step 7),
- * F5 = 77 (step 8), G5 = 79 (step 9).
- * Below staff: D4 = 62 (step -1), C4 = 60 (step -2).
- */
 internal fun diatonicStepFromE4(midi: Int): Int {
     return when (midi) {
         60 -> -2 // C4 (Middle C)

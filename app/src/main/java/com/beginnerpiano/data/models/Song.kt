@@ -66,3 +66,11 @@ data class Song(
     val defaultBpm: Int = 60,
     val notes: List<NoteEvent>
 )
+
+data class SongMastery(
+    val songId: String,
+    val bestStars: Int = 0,
+    val bestAccuracy: Int = 0,
+    val bestStreak: Int = 0,
+    val playCount: Int = 0
+)

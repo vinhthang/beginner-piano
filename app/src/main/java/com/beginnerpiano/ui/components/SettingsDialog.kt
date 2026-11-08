@@ -19,16 +19,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -36,7 +32,6 @@ import androidx.compose.ui.window.Dialog
 import com.beginnerpiano.audio.PitchDetectorType
 import com.beginnerpiano.data.models.NotationSystem
 import com.beginnerpiano.practice.PracticeMode
-import com.beginnerpiano.ui.theme.Emerald500
 import com.beginnerpiano.ui.theme.Indigo500
 import com.beginnerpiano.ui.theme.Slate400
 
@@ -49,7 +44,11 @@ fun SettingsDialog(
     onPitchDetectorChanged: (PitchDetectorType) -> Unit,
     currentMode: PracticeMode,
     onModeChanged: (PracticeMode) -> Unit,
-    onDismissRequest: () -> Unit
+    onDismissRequest: () -> Unit,
+    currentTempoMultiplier: Float = 1.0f,
+    onTempoMultiplierChanged: (Float) -> Unit = {},
+    metronomeEnabled: Boolean = true,
+    onMetronomeEnabledChanged: (Boolean) -> Unit = {}
 ) {
     Dialog(onDismissRequest = onDismissRequest) {
         Card(
@@ -123,7 +122,79 @@ fun SettingsDialog(
                     }
                 }
 
-                // Section 2: Pitch Detection Engine
+                // Section 2: Tempo Speed Multiplier (REQ-006)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "TEMPO SPEED MULTIPLIER",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Slate400
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        listOf(0.5f, 0.75f, 1.0f, 1.25f).forEach { speed ->
+                            val isSelected = kotlin.math.abs(currentTempoMultiplier - speed) < 0.05f
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { onTempoMultiplierChanged(speed) },
+                                label = {
+                                    Text(
+                                        text = "${speed}x",
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                    }
+                }
+
+                // Section 3: Metronome Click (REQ-008)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "METRONOME CLICK",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Slate400
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        FilterChip(
+                            selected = metronomeEnabled,
+                            onClick = { onMetronomeEnabledChanged(true) },
+                            label = {
+                                Text(
+                                    text = "🔔 Enabled",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (metronomeEnabled) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        )
+                        FilterChip(
+                            selected = !metronomeEnabled,
+                            onClick = { onMetronomeEnabledChanged(false) },
+                            label = {
+                                Text(
+                                    text = "🔕 Muted",
+                                    fontSize = 12.sp,
+                                    fontWeight = if (!metronomeEnabled) FontWeight.Bold else FontWeight.Normal
+                                )
+                            },
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // Section 4: Pitch Detection Engine
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = "PITCH DETECTION ENGINE",
@@ -164,7 +235,7 @@ fun SettingsDialog(
                     }
                 }
 
-                // Section 3: Practice Mode
+                // Section 5: Practice Mode
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
                         text = "PRACTICE MODE",

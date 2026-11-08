@@ -1,6 +1,7 @@
 package com.beginnerpiano.ui.components
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,8 +15,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -28,6 +31,7 @@ import com.beginnerpiano.ui.theme.Indigo500
 import com.beginnerpiano.ui.theme.Rose500
 import com.beginnerpiano.ui.theme.Slate400
 import com.beginnerpiano.ui.theme.Slate700
+import kotlin.math.roundToInt
 
 /**
  * Multi-system wrapped sheet music renderer for landscape and score view.
@@ -40,7 +44,10 @@ fun WrappedStaffCanvas(
     activeIndex: Int,
     feedbackStatus: NoteFeedbackStatus,
     modifier: Modifier = Modifier,
-    notation: NotationSystem = NotationSystem.SOLFEGE
+    notation: NotationSystem = NotationSystem.SOLFEGE,
+    loopStartIndex: Int? = null,
+    loopEndIndex: Int? = null,
+    onNoteTapped: ((Int) -> Unit)? = null
 ) {
     if (notes.isEmpty()) return
 
@@ -86,6 +93,32 @@ fun WrappedStaffCanvas(
             }
         }
 
+        val pointerModifier = if (onNoteTapped != null && notes.isNotEmpty()) {
+            Modifier.pointerInput(notes, activeIndex) {
+                detectTapGestures { tapOffset ->
+                    val sysHeightPx = computedSystemHeight.toPx()
+                    val s = (tapOffset.y / sysHeightPx).toInt().coerceIn(0, systemCount - 1)
+                    val startIdx = s * notesPerRow
+                    val endIdx = minOf((s + 1) * notesPerRow, totalNotes)
+                    val count = endIdx - startIdx
+                    if (count > 0) {
+                        val leftMarginPx = leftMargin.toPx()
+                        val rightMarginPx = rightMargin.toPx()
+                        val notesStartX = leftMarginPx + 38.dp.toPx()
+                        val notesEndX = size.width - rightMarginPx - 20.dp.toPx()
+                        val colSpacing = if (notesPerRow > 1) {
+                            (notesEndX - notesStartX) / (notesPerRow - 1)
+                        } else {
+                            48.dp.toPx()
+                        }
+                        val col = ((tapOffset.x - notesStartX) / colSpacing).roundToInt().coerceIn(0, count - 1)
+                        val tappedIndex = (startIdx + col).coerceIn(0, notes.lastIndex)
+                        onNoteTapped(tappedIndex)
+                    }
+                }
+            }
+        } else Modifier
+
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -95,6 +128,7 @@ fun WrappedStaffCanvas(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(totalCanvasHeight)
+                    .then(pointerModifier)
             ) {
                 val width = size.width
                 val leftMarginPx = leftMargin.toPx()
@@ -169,6 +203,40 @@ fun WrappedStaffCanvas(
                         val isCurrent = (noteIdx == activeIndex)
                         val isPast = (noteIdx < activeIndex)
 
+                        // A-B Loop highlighting (REQ-007)
+                        val inLoop = loopStartIndex != null && loopEndIndex != null &&
+                                noteIdx in loopStartIndex..loopEndIndex
+                        if (inLoop) {
+                            drawRoundRect(
+                                color = Indigo500.copy(alpha = 0.08f),
+                                topLeft = Offset(noteX - 16.dp.toPx(), sysCenterY - 30.dp.toPx()),
+                                size = Size(32.dp.toPx(), 60.dp.toPx()),
+                                cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                            )
+                            if (noteIdx == loopStartIndex) {
+                                drawContext.canvas.nativeCanvas.apply {
+                                    val tagPaint = android.graphics.Paint().apply {
+                                        color = Indigo500.hashCode()
+                                        textSize = 20f
+                                        textAlign = android.graphics.Paint.Align.CENTER
+                                        isFakeBoldText = true
+                                    }
+                                    drawText("A", noteX - 10.dp.toPx(), sysTop + 14.dp.toPx(), tagPaint)
+                                }
+                            }
+                            if (noteIdx == loopEndIndex) {
+                                drawContext.canvas.nativeCanvas.apply {
+                                    val tagPaint = android.graphics.Paint().apply {
+                                        color = Indigo500.hashCode()
+                                        textSize = 20f
+                                        textAlign = android.graphics.Paint.Align.CENTER
+                                        isFakeBoldText = true
+                                    }
+                                    drawText("B", noteX + 10.dp.toPx(), sysTop + 14.dp.toPx(), tagPaint)
+                                }
+                            }
+                        }
+
                         // Measure divider barline (every 4 notes, if not the last note in system)
                         if (col % 4 == 3 && col < count - 1) {
                             val barX = noteX + colSpacing / 2f
@@ -216,20 +284,65 @@ fun WrappedStaffCanvas(
                             )
                         }
 
-                        // Note Head
-                        drawOval(
-                            color = noteColor,
-                            topLeft = Offset(noteX - 8.dp.toPx(), noteY - 6.dp.toPx()),
-                            size = Size(16.dp.toPx(), 12.dp.toPx())
-                        )
+                        // Accidentals: Draw Sharp symbol if note is sharp (REQ-005)
+                        if (NoteNotationHelper.isSharp(note.midiNote)) {
+                            drawContext.canvas.nativeCanvas.apply {
+                                val sharpPaint = android.graphics.Paint().apply {
+                                    color = noteColor.hashCode()
+                                    textSize = 26f
+                                    textAlign = android.graphics.Paint.Align.RIGHT
+                                    isFakeBoldText = true
+                                }
+                                drawText("♯", noteX - 9.dp.toPx(), noteY + 4.dp.toPx(), sharpPaint)
+                            }
+                        }
 
-                        // Note Stem (pointing up)
-                        drawLine(
-                            color = noteColor,
-                            start = Offset(noteX + 7.dp.toPx(), noteY),
-                            end = Offset(noteX + 7.dp.toPx(), noteY - 28.dp.toPx()),
-                            strokeWidth = 2f
-                        )
+                        // Duration-accurate Note Head (REQ-005)
+                        val headType = NoteNotationHelper.getNoteHeadType(note.durationBeats)
+                        if (headType == NoteHeadType.WHOLE || headType == NoteHeadType.HALF) {
+                            drawOval(
+                                color = noteColor,
+                                topLeft = Offset(noteX - 8.dp.toPx(), noteY - 6.dp.toPx()),
+                                size = Size(16.dp.toPx(), 12.dp.toPx()),
+                                style = Stroke(width = 2.2f)
+                            )
+                        } else {
+                            drawOval(
+                                color = noteColor,
+                                topLeft = Offset(noteX - 8.dp.toPx(), noteY - 6.dp.toPx()),
+                                size = Size(16.dp.toPx(), 12.dp.toPx())
+                            )
+                        }
+
+                        // Augmentation Dot (REQ-005)
+                        if (NoteNotationHelper.isDotted(note.durationBeats)) {
+                            drawCircle(
+                                color = noteColor,
+                                radius = 2.2.dp.toPx(),
+                                center = Offset(noteX + 12.dp.toPx(), noteY)
+                            )
+                        }
+
+                        // Note Stem and Flag (REQ-005)
+                        if (headType != NoteHeadType.WHOLE) {
+                            drawLine(
+                                color = noteColor,
+                                start = Offset(noteX + 7.dp.toPx(), noteY),
+                                end = Offset(noteX + 7.dp.toPx(), noteY - 28.dp.toPx()),
+                                strokeWidth = 2f
+                            )
+
+                            if (headType == NoteHeadType.EIGHTH) {
+                                val flagPath = Path().apply {
+                                    moveTo(noteX + 7.dp.toPx(), noteY - 28.dp.toPx())
+                                    quadraticTo(
+                                        noteX + 16.dp.toPx(), noteY - 20.dp.toPx(),
+                                        noteX + 14.dp.toPx(), noteY - 10.dp.toPx()
+                                    )
+                                }
+                                drawPath(path = flagPath, color = noteColor, style = Stroke(width = 2.2f))
+                            }
+                        }
 
                         // Subtle finger badge below note
                         val finger = FingeringEngine.resolveFinger(note)

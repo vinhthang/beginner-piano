@@ -46,6 +46,9 @@ class MainActivity : ComponentActivity() {
                     var currentScreen by remember { mutableStateOf(Screen.SONG_SELECTION) }
                     var showSettings by remember { mutableStateOf(false) }
                     val practiceState by practiceViewModel.practiceState.collectAsState()
+                    val allSongs by practiceViewModel.allSongs.collectAsState()
+                    val masteryMap by practiceViewModel.masteryMap.collectAsState()
+
                     var hasAudioPermission by remember {
                         mutableStateOf(
                             ContextCompat.checkSelfPermission(
@@ -61,6 +64,27 @@ class MainActivity : ComponentActivity() {
                         hasAudioPermission = isGranted
                         if (isGranted) {
                             practiceViewModel.startListening()
+                        }
+                    }
+
+                    // Activity Result launcher for MIDI file import (REQ-009)
+                    val midiFilePicker = rememberLauncherForActivityResult(
+                        contract = ActivityResultContracts.GetContent()
+                    ) { uri ->
+                        uri?.let {
+                            try {
+                                contentResolver.openInputStream(uri)?.use { stream ->
+                                    val fileName = uri.lastPathSegment
+                                    val imported = practiceViewModel.importMidiSong(stream, fileName)
+                                    if (imported != null) {
+                                        practiceViewModel.selectSong(imported)
+                                        practiceViewModel.restart()
+                                        currentScreen = Screen.PRACTICE
+                                    }
+                                }
+                            } catch (e: Throwable) {
+                                // Graceful fallback
+                            }
                         }
                     }
 
@@ -81,10 +105,15 @@ class MainActivity : ComponentActivity() {
                     when (currentScreen) {
                         Screen.SONG_SELECTION -> {
                             SongSelectionScreen(
+                                songs = allSongs,
+                                masteryMap = masteryMap,
                                 onSongSelected = { song ->
                                     practiceViewModel.selectSong(song)
                                     practiceViewModel.restart()
                                     currentScreen = Screen.PRACTICE
+                                },
+                                onImportMidiRequested = {
+                                    midiFilePicker.launch("*/*")
                                 },
                                 notationSystem = practiceState.notationSystem,
                                 onOpenSettings = { showSettings = true }
@@ -108,7 +137,11 @@ class MainActivity : ComponentActivity() {
                             onPitchDetectorChanged = { practiceViewModel.setPitchDetectorType(it) },
                             currentMode = practiceState.mode,
                             onModeChanged = { practiceViewModel.setMode(it) },
-                            onDismissRequest = { showSettings = false }
+                            onDismissRequest = { showSettings = false },
+                            currentTempoMultiplier = practiceState.tempoMultiplier,
+                            onTempoMultiplierChanged = { practiceViewModel.setTempoMultiplier(it) },
+                            metronomeEnabled = practiceState.metronomeEnabled,
+                            onMetronomeEnabledChanged = { practiceViewModel.setMetronomeEnabled(it) }
                         )
                     }
                 }

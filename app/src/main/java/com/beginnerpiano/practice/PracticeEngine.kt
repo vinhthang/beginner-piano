@@ -31,7 +31,12 @@ data class PracticeState(
     val currentStreak: Int = 0,
     val bestStreak: Int = 0,
     val isCompleted: Boolean = false,
-    val isPlayingDemo: Boolean = false
+    val isPlayingDemo: Boolean = false,
+    val tempoMultiplier: Float = 1.0f,
+    val loopStartIndex: Int? = null,
+    val loopEndIndex: Int? = null,
+    val metronomeEnabled: Boolean = true,
+    val isTempoRunning: Boolean = false
 ) {
     val currentTargetNote: NoteEvent?
         get() = if (currentNoteIndex in song.notes.indices) song.notes[currentNoteIndex] else null
@@ -47,6 +52,26 @@ data class PracticeState(
 
     val streak: Int
         get() = currentStreak
+
+    val effectiveBpm: Int
+        get() = (song.defaultBpm * tempoMultiplier).toInt().coerceAtLeast(20)
+
+    val isLoopActive: Boolean
+        get() = loopStartIndex != null && loopEndIndex != null && loopStartIndex <= loopEndIndex
+
+    val earnedStars: Int
+        get() = calculateStars(accuracyPercent)
+
+    companion object {
+        fun calculateStars(accuracyPercent: Int): Int {
+            return when {
+                accuracyPercent >= 95 -> 3
+                accuracyPercent >= 80 -> 2
+                accuracyPercent >= 60 -> 1
+                else -> 0
+            }
+        }
+    }
 }
 
 class PracticeEngine(initialSong: Song) {
@@ -57,9 +82,14 @@ class PracticeEngine(initialSong: Song) {
     fun reset() {
         state = PracticeState(
             song = state.song,
+            currentNoteIndex = state.loopStartIndex ?: 0,
             mode = state.mode,
             pitchDetectorType = state.pitchDetectorType,
-            notationSystem = state.notationSystem
+            notationSystem = state.notationSystem,
+            tempoMultiplier = state.tempoMultiplier,
+            loopStartIndex = state.loopStartIndex,
+            loopEndIndex = state.loopEndIndex,
+            metronomeEnabled = state.metronomeEnabled
         )
     }
 
@@ -68,7 +98,9 @@ class PracticeEngine(initialSong: Song) {
             song = song,
             mode = state.mode,
             pitchDetectorType = state.pitchDetectorType,
-            notationSystem = state.notationSystem
+            notationSystem = state.notationSystem,
+            tempoMultiplier = state.tempoMultiplier,
+            metronomeEnabled = state.metronomeEnabled
         )
     }
 
@@ -86,6 +118,87 @@ class PracticeEngine(initialSong: Song) {
 
     fun setPlayingDemo(isPlaying: Boolean) {
         state = state.copy(isPlayingDemo = isPlaying)
+    }
+
+    fun setTempoMultiplier(multiplier: Float) {
+        state = state.copy(tempoMultiplier = multiplier.coerceIn(0.5f, 1.5f))
+    }
+
+    fun setLoopRange(startIndex: Int?, endIndex: Int?) {
+        if (startIndex == null || endIndex == null || state.song.notes.isEmpty()) {
+            state = state.copy(loopStartIndex = null, loopEndIndex = null)
+            return
+        }
+        val clampedStart = startIndex.coerceIn(0, state.song.notes.lastIndex)
+        val clampedEnd = endIndex.coerceIn(0, state.song.notes.lastIndex)
+        val normStart = minOf(clampedStart, clampedEnd)
+        val normEnd = maxOf(clampedStart, clampedEnd)
+        val newNoteIndex = if (state.currentNoteIndex !in normStart..normEnd) normStart else state.currentNoteIndex
+        state = state.copy(
+            loopStartIndex = normStart,
+            loopEndIndex = normEnd,
+            currentNoteIndex = newNoteIndex,
+            isCompleted = false
+        )
+    }
+
+    fun onNoteTappedForLoop(noteIndex: Int) {
+        if (state.song.notes.isEmpty()) return
+        val idx = noteIndex.coerceIn(0, state.song.notes.lastIndex)
+        val start = state.loopStartIndex
+        val end = state.loopEndIndex
+        if (!state.isLoopActive || start == null || end == null) {
+            val defaultEnd = minOf(idx + 3, state.song.notes.lastIndex)
+            setLoopRange(idx, defaultEnd)
+        } else {
+            if (idx == start && idx == end) {
+                clearLoop()
+            } else if (idx < start) {
+                setLoopRange(idx, end)
+            } else if (idx > start) {
+                setLoopRange(start, idx)
+            } else if (idx == start) {
+                clearLoop()
+            }
+        }
+    }
+
+    fun clearLoop() {
+        state = state.copy(loopStartIndex = null, loopEndIndex = null)
+    }
+
+    fun setMetronomeEnabled(enabled: Boolean) {
+        state = state.copy(metronomeEnabled = enabled)
+    }
+
+    fun setTempoRunning(running: Boolean) {
+        state = state.copy(isTempoRunning = running)
+    }
+
+    fun onBeatTimeout(): NoteFeedbackStatus {
+        if (state.isCompleted) return NoteFeedbackStatus.IDLE
+        val target = state.currentTargetNote ?: return NoteFeedbackStatus.IDLE
+
+        val isLoop = state.isLoopActive
+        val loopStart = state.loopStartIndex ?: 0
+        val loopEnd = state.loopEndIndex ?: state.song.notes.lastIndex
+
+        val (nextIndex, isDone) = if (isLoop && state.currentNoteIndex >= loopEnd) {
+            Pair(loopStart, false)
+        } else {
+            val idx = state.currentNoteIndex + 1
+            val done = idx >= state.song.notes.size
+            Pair(idx, done)
+        }
+
+        state = state.copy(
+            currentNoteIndex = nextIndex,
+            feedbackStatus = NoteFeedbackStatus.MISMATCH,
+            totalMisses = state.totalMisses + 1,
+            currentStreak = 0,
+            isCompleted = isDone
+        )
+        return NoteFeedbackStatus.MISMATCH
     }
 
     fun clearFeedbackStatus() {
@@ -110,11 +223,21 @@ class PracticeEngine(initialSong: Song) {
 
         return if (playedMidi == target.midiNote) {
             // Correct note hit!
-            val newIndex = state.currentNoteIndex + 1
+            val isLoop = state.isLoopActive
+            val loopStart = state.loopStartIndex ?: 0
+            val loopEnd = state.loopEndIndex ?: state.song.notes.lastIndex
+
+            val (newIndex, isDone) = if (isLoop && state.currentNoteIndex >= loopEnd) {
+                Pair(loopStart, false)
+            } else {
+                val next = state.currentNoteIndex + 1
+                val done = next >= state.song.notes.size
+                Pair(next, done)
+            }
+
             val newHits = state.totalHits + 1
             val newStreak = state.currentStreak + 1
             val bestStreak = maxOf(state.bestStreak, newStreak)
-            val isDone = newIndex >= state.song.notes.size
 
             state = state.copy(
                 currentNoteIndex = newIndex,

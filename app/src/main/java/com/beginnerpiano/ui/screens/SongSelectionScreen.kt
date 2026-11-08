@@ -22,7 +22,6 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
@@ -43,6 +42,7 @@ import com.beginnerpiano.data.models.DifficultyLevel
 import com.beginnerpiano.data.models.NotationSystem
 import com.beginnerpiano.data.models.NoteEvent
 import com.beginnerpiano.data.models.Song
+import com.beginnerpiano.data.models.SongMastery
 import com.beginnerpiano.data.repository.SongRepository
 import com.beginnerpiano.ui.theme.Amber500
 import com.beginnerpiano.ui.theme.Emerald500
@@ -51,7 +51,10 @@ import com.beginnerpiano.ui.theme.Slate400
 
 @Composable
 fun SongSelectionScreen(
+    songs: List<Song> = SongRepository.songs,
+    masteryMap: Map<String, SongMastery> = emptyMap(),
     onSongSelected: (Song) -> Unit,
+    onImportMidiRequested: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     notationSystem: NotationSystem = NotationSystem.SOLFEGE,
     onOpenSettings: () -> Unit = {}
@@ -60,12 +63,16 @@ fun SongSelectionScreen(
     val isLandscape = configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE
     var selectedFilter by remember { mutableStateOf<DifficultyLevel?>(null) }
 
-    val displayedSongs = remember(selectedFilter) {
+    val displayedSongs = remember(songs, selectedFilter) {
         if (selectedFilter == null) {
-            SongRepository.songs
+            songs
         } else {
-            SongRepository.getSongsByDifficulty(selectedFilter!!)
+            songs.filter { it.difficulty == selectedFilter }
         }
+    }
+
+    val totalStars = remember(masteryMap) {
+        masteryMap.values.sumOf { it.bestStars }
     }
 
     Column(
@@ -83,23 +90,58 @@ fun SongSelectionScreen(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column {
-                Text(
-                    text = "🎹 Beginner Piano",
-                    fontSize = if (isLandscape) 22.sp else 26.sp,
-                    fontWeight = FontWeight.Black
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(
+                        text = "🎹 Beginner Piano",
+                        fontSize = if (isLandscape) 20.sp else 24.sp,
+                        fontWeight = FontWeight.Black
+                    )
+
+                    // Total Stars Mastery Badge (REQ-009)
+                    Box(
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(Amber500.copy(alpha = 0.15f))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(
+                            text = "⭐ $totalStars",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Amber500
+                        )
+                    }
+                }
                 Text(
                     text = "Progressive repertoire designed for new players",
-                    fontSize = if (isLandscape) 12.sp else 13.sp,
+                    fontSize = if (isLandscape) 11.sp else 13.sp,
                     color = Slate400
                 )
             }
-            OutlinedButton(
-                onClick = onOpenSettings,
-                shape = RoundedCornerShape(8.dp),
-                contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
-            ) {
-                Text("⚙ Settings", fontSize = 12.sp)
+
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                // + Import MIDI Button (REQ-009)
+                if (onImportMidiRequested != null) {
+                    Button(
+                        onClick = onImportMidiRequested,
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Indigo500),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                    ) {
+                        Text("+ Import MIDI", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = onOpenSettings,
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                ) {
+                    Text("⚙ Settings", fontSize = 12.sp)
+                }
             }
         }
 
@@ -112,12 +154,12 @@ fun SongSelectionScreen(
                 FilterChip(
                     selected = (selectedFilter == null),
                     onClick = { selectedFilter = null },
-                    label = { Text("All (${SongRepository.songs.size})", fontSize = 11.sp) },
+                    label = { Text("All (${songs.size})", fontSize = 11.sp) },
                     shape = RoundedCornerShape(8.dp)
                 )
             }
             item {
-                val count = SongRepository.getSongsByDifficulty(DifficultyLevel.BEGINNER).size
+                val count = songs.count { it.difficulty == DifficultyLevel.BEGINNER }
                 FilterChip(
                     selected = (selectedFilter == DifficultyLevel.BEGINNER),
                     onClick = { selectedFilter = DifficultyLevel.BEGINNER },
@@ -126,7 +168,7 @@ fun SongSelectionScreen(
                 )
             }
             item {
-                val count = SongRepository.getSongsByDifficulty(DifficultyLevel.ELEMENTARY).size
+                val count = songs.count { it.difficulty == DifficultyLevel.ELEMENTARY }
                 FilterChip(
                     selected = (selectedFilter == DifficultyLevel.ELEMENTARY),
                     onClick = { selectedFilter = DifficultyLevel.ELEMENTARY },
@@ -135,7 +177,7 @@ fun SongSelectionScreen(
                 )
             }
             item {
-                val count = SongRepository.getSongsByDifficulty(DifficultyLevel.INTERMEDIATE).size
+                val count = songs.count { it.difficulty == DifficultyLevel.INTERMEDIATE }
                 FilterChip(
                     selected = (selectedFilter == DifficultyLevel.INTERMEDIATE),
                     onClick = { selectedFilter = DifficultyLevel.INTERMEDIATE },
@@ -163,6 +205,7 @@ fun SongSelectionScreen(
                 items(displayedSongs) { song ->
                     SongCard(
                         song = song,
+                        mastery = masteryMap[song.id],
                         notationSystem = notationSystem,
                         onClick = { onSongSelected(song) }
                     )
@@ -175,6 +218,7 @@ fun SongSelectionScreen(
                 items(displayedSongs) { song ->
                     SongCard(
                         song = song,
+                        mastery = masteryMap[song.id],
                         notationSystem = notationSystem,
                         onClick = { onSongSelected(song) }
                     )
@@ -187,6 +231,7 @@ fun SongSelectionScreen(
 @Composable
 private fun SongCard(
     song: Song,
+    mastery: SongMastery?,
     notationSystem: NotationSystem,
     onClick: () -> Unit
 ) {
@@ -245,13 +290,48 @@ private fun SongCard(
                             color = badgeColor
                         )
                     }
+
+                    // Star Rating Badge (REQ-009)
+                    val stars = mastery?.bestStars ?: 0
+                    if (stars > 0) {
+                        Text(
+                            text = "★".repeat(stars) + "☆".repeat(3 - stars),
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Amber500
+                        )
+                    }
                 }
-                Text(
-                    text = "${song.composer} • ${song.notes.size} notes • ${song.defaultBpm} BPM",
-                    fontSize = 12.sp,
-                    color = Slate400,
+
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier.padding(top = 3.dp)
-                )
+                ) {
+                    Text(
+                        text = "${song.composer} • ${song.notes.size} notes • ${song.defaultBpm} BPM",
+                        fontSize = 12.sp,
+                        color = Slate400
+                    )
+
+                    // Best Accuracy Badge (REQ-009)
+                    if (mastery != null && mastery.playCount > 0) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(4.dp))
+                                .background(Emerald500.copy(alpha = 0.12f))
+                                .padding(horizontal = 4.dp, vertical = 1.dp)
+                        ) {
+                            Text(
+                                text = "${mastery.bestAccuracy}%",
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Emerald500
+                            )
+                        }
+                    }
+                }
+
                 if (noteRangeSummary.isNotEmpty()) {
                     Text(
                         text = noteRangeSummary,

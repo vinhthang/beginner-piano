@@ -5,6 +5,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +14,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,6 +34,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -46,12 +50,13 @@ import com.beginnerpiano.ui.components.PracticeHud
 import com.beginnerpiano.ui.components.SettingsDialog
 import com.beginnerpiano.ui.components.StaffCanvas
 import com.beginnerpiano.ui.components.WrappedStaffCanvas
-import androidx.compose.ui.platform.LocalConfiguration
+import com.beginnerpiano.ui.theme.Amber500
 import com.beginnerpiano.ui.theme.Emerald500
 import com.beginnerpiano.ui.theme.Indigo500
 import com.beginnerpiano.ui.theme.Rose500
 import com.beginnerpiano.ui.theme.Slate400
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun PracticeScreen(
     viewModel: PracticeViewModel,
@@ -102,49 +107,52 @@ fun PracticeScreen(
                 // Inline HUD badges & controls
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    // Target note badge
-                    val targetNote = practiceState.currentTargetNote
-                    val targetName = targetNote?.let {
-                        NoteEvent.midiToNoteName(it.midiNote, practiceState.notationSystem)
-                    } ?: "-"
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Indigo500.copy(alpha = 0.15f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    // Speed Multiplier Cycle Button (REQ-006)
+                    OutlinedButton(
+                        onClick = { viewModel.cycleTempoMultiplier() },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Text(
-                            text = "Target: $targetName",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Indigo500
-                        )
+                        Text("⚡ ${practiceState.tempoMultiplier}x", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                     }
 
-                    // Target hand fingering badge
-                    if (targetNote != null) {
-                        val finger = FingeringEngine.resolveFinger(targetNote)
-                        HandFingeringBadge(
-                            finger = finger,
-                            size = 20.dp
-                        )
+                    // A-B Loop Toggle Button (REQ-007)
+                    OutlinedButton(
+                        onClick = { viewModel.toggleLoopRange() },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = if (practiceState.isLoopActive) ButtonDefaults.outlinedButtonColors(containerColor = Indigo500.copy(alpha = 0.15f)) else ButtonDefaults.outlinedButtonColors(),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        val loopLabel = if (practiceState.isLoopActive) {
+                            "🔁 [${practiceState.loopStartIndex}..${practiceState.loopEndIndex}]"
+                        } else {
+                            "🔁 Loop"
+                        }
+                        Text(loopLabel, fontSize = 11.sp, fontWeight = if (practiceState.isLoopActive) FontWeight.Bold else FontWeight.Normal)
                     }
 
-                    // Streak badge
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Emerald500.copy(alpha = 0.15f))
-                            .padding(horizontal = 8.dp, vertical = 4.dp)
-                    ) {
-                        Text(
-                            text = "🔥 ${practiceState.streak}",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Emerald500
-                        )
+                    // Tempo Mode Start/Pause & Metronome Toggle (REQ-008)
+                    if (practiceState.mode == PracticeMode.TEMPO) {
+                        Button(
+                            onClick = { viewModel.toggleTempoClock() },
+                            shape = RoundedCornerShape(8.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (practiceState.isTempoRunning) Rose500 else Indigo500
+                            ),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(if (practiceState.isTempoRunning) "⏸ Pause" else "▶ Beat", fontSize = 11.sp)
+                        }
+
+                        OutlinedButton(
+                            onClick = { viewModel.toggleMetronome() },
+                            shape = RoundedCornerShape(8.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 4.dp)
+                        ) {
+                            Text(if (practiceState.metronomeEnabled) "🔔" else "🔕", fontSize = 11.sp)
+                        }
                     }
 
                     // Play Demo / Stop button
@@ -157,7 +165,7 @@ fun PracticeScreen(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
                     ) {
                         Text(
-                            text = if (practiceState.isPlayingDemo) "⏹ Stop" else "▶ Play Demo",
+                            text = if (practiceState.isPlayingDemo) "⏹ Stop" else "▶ Demo",
                             fontSize = 11.sp
                         )
                     }
@@ -177,7 +185,7 @@ fun PracticeScreen(
                         shape = RoundedCornerShape(8.dp),
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     ) {
-                        Text("⚙ Settings", fontSize = 11.sp)
+                        Text("⚙", fontSize = 11.sp)
                     }
                 }
             }
@@ -210,7 +218,7 @@ fun PracticeScreen(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     // Play Demo / Stop Button
                     Button(
                         onClick = { viewModel.toggleDemoPlayback() },
@@ -221,7 +229,7 @@ fun PracticeScreen(
                         contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
                     ) {
                         Text(
-                            text = if (practiceState.isPlayingDemo) "⏹ Stop" else "▶ Play Demo",
+                            text = if (practiceState.isPlayingDemo) "⏹ Stop" else "▶ Demo",
                             fontSize = 11.sp
                         )
                     }
@@ -230,7 +238,7 @@ fun PracticeScreen(
                     OutlinedButton(
                         onClick = { viewModel.restart() },
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                     ) {
                         Text("Restart", fontSize = 11.sp)
                     }
@@ -239,9 +247,64 @@ fun PracticeScreen(
                     OutlinedButton(
                         onClick = { showSettings = true },
                         shape = RoundedCornerShape(8.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 6.dp)
                     ) {
-                        Text("⚙ Settings", fontSize = 11.sp)
+                        Text("⚙", fontSize = 11.sp)
+                    }
+                }
+            }
+
+            // Practice Toolbar Row: Speed + A-B Loop + Tempo clock controls
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Speed Chip
+                OutlinedButton(
+                    onClick = { viewModel.cycleTempoMultiplier() },
+                    shape = RoundedCornerShape(8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    Text("⚡ ${practiceState.tempoMultiplier}x", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                }
+
+                // A-B Loop Chip
+                OutlinedButton(
+                    onClick = { viewModel.toggleLoopRange() },
+                    shape = RoundedCornerShape(8.dp),
+                    colors = if (practiceState.isLoopActive) ButtonDefaults.outlinedButtonColors(containerColor = Indigo500.copy(alpha = 0.15f)) else ButtonDefaults.outlinedButtonColors(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                ) {
+                    val label = if (practiceState.isLoopActive) {
+                        "🔁 [${practiceState.loopStartIndex}..${practiceState.loopEndIndex}]"
+                    } else {
+                        "🔁 A-B Loop"
+                    }
+                    Text(label, fontSize = 11.sp, fontWeight = if (practiceState.isLoopActive) FontWeight.Bold else FontWeight.Normal)
+                }
+
+                // In Tempo Mode: Beat Clock + Metronome
+                if (practiceState.mode == PracticeMode.TEMPO) {
+                    Button(
+                        onClick = { viewModel.toggleTempoClock() },
+                        shape = RoundedCornerShape(8.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (practiceState.isTempoRunning) Rose500 else Indigo500
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    ) {
+                        Text(if (practiceState.isTempoRunning) "⏸ Pause" else "▶ Beat", fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
+                        onClick = { viewModel.toggleMetronome() },
+                        shape = RoundedCornerShape(8.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                    ) {
+                        Text(if (practiceState.metronomeEnabled) "🔔 Click" else "🔕 Mute", fontSize = 11.sp)
                     }
                 }
             }
@@ -251,7 +314,7 @@ fun PracticeScreen(
                 practiceState = practiceState,
                 detectedPitch = detectedPitch,
                 onOpenSettings = { showSettings = true },
-                modifier = Modifier.padding(vertical = 8.dp)
+                modifier = Modifier.padding(vertical = 4.dp)
             )
         }
 
@@ -271,6 +334,9 @@ fun PracticeScreen(
                     activeIndex = practiceState.currentNoteIndex,
                     feedbackStatus = practiceState.feedbackStatus,
                     notation = practiceState.notationSystem,
+                    loopStartIndex = practiceState.loopStartIndex,
+                    loopEndIndex = practiceState.loopEndIndex,
+                    onNoteTapped = { viewModel.onNoteTappedForLoop(it) },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(vertical = 4.dp, horizontal = 6.dp)
@@ -281,6 +347,9 @@ fun PracticeScreen(
                     activeIndex = practiceState.currentNoteIndex,
                     feedbackStatus = practiceState.feedbackStatus,
                     notation = practiceState.notationSystem,
+                    loopStartIndex = practiceState.loopStartIndex,
+                    loopEndIndex = practiceState.loopEndIndex,
+                    onNoteTapped = { viewModel.onNoteTappedForLoop(it) },
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(vertical = 12.dp)
@@ -310,11 +379,15 @@ fun PracticeScreen(
             onPitchDetectorChanged = { viewModel.setPitchDetectorType(it) },
             currentMode = practiceState.mode,
             onModeChanged = { viewModel.setMode(it) },
-            onDismissRequest = { showSettings = false }
+            onDismissRequest = { showSettings = false },
+            currentTempoMultiplier = practiceState.tempoMultiplier,
+            onTempoMultiplierChanged = { viewModel.setTempoMultiplier(it) },
+            metronomeEnabled = practiceState.metronomeEnabled,
+            onMetronomeEnabledChanged = { viewModel.setMetronomeEnabled(it) }
         )
     }
 
-    // Completion Dialog
+    // Completion Dialog with 3-Star Rating (REQ-009)
     if (practiceState.isCompleted) {
         Dialog(onDismissRequest = { /* force action */ }) {
             Card(
@@ -327,11 +400,23 @@ fun PracticeScreen(
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
+                    val stars = practiceState.earnedStars
+                    val starString = "★".repeat(stars) + "☆".repeat(3 - stars)
+
                     Text(
                         text = "🌟 Exercise Completed!",
                         fontSize = 20.sp,
                         fontWeight = FontWeight.Black
                     )
+
+                    // 3-Star Rating Badge (REQ-009)
+                    Text(
+                        text = starString,
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Amber500
+                    )
+
                     Text(
                         text = "Great job playing ${practiceState.song.title}!",
                         fontSize = 13.sp,
